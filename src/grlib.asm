@@ -285,9 +285,24 @@ particleTable_color0: 	.byte 	$0B 		; even row color (lower nibble)
 particleTable_color1: 	.byte 	$B0			; odd row color (upper nibble)
 particleTable_bg:    	.byte 	$55 		; saved background byte
 particleTable_entryEnd:
-						.byte	$ff,  $00,$18,  $00,$0F,  $00,$FF,  $00,$FF,  $0C,$C0,$55
+
 ; remaining particles
-						.res 	PARTICLE_ENTRY_SIZE*(16-2)
+;       age, x0,  x1,  y0,  y1,  vx0, vx1, vy0, vy1, c0,  c1,  bg
+;       ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---
+  .byte $ff, $80, $14, $80, $12, $4e, $0 , $ec, $ff, $c , $c0, $55
+  .byte $ff, $80, $14, $80, $12, $dc, $ff, $64, $0 , $d , $d0, $55
+  .byte $ff, $80, $14, $80, $12, $b0, $0 , $c6, $ff, $e , $e0, $55
+  .byte $ff, $80, $14, $80, $12, $67, $0 , $1a, $0 , $b , $b0, $55
+  .byte $ff, $80, $14, $80, $12, $f6, $ff, $42, $0 , $b , $b0, $55
+  .byte $ff, $80, $14, $80, $12, $0 , $0 , $aa, $ff, $b , $b0, $55
+  .byte $ff, $80, $14, $80, $12, $79, $0 , $49, $0 , $b , $b0, $55
+  .byte $ff, $80, $14, $80, $12, $80, $0 , $42, $0 , $f , $f0, $55
+  .byte $ff, $80, $14, $80, $12, $ec, $ff, $45, $0 , $b , $b0, $55
+  .byte $ff, $80, $14, $80, $12, $b1, $ff, $e8, $ff, $f , $f0, $55
+  .byte $ff, $80, $14, $80, $12, $46, $0 , $38, $0 , $e , $e0, $55
+  .byte $ff, $80, $14, $80, $12, $65, $0 , $ba, $ff, $f , $f0, $55
+  .byte $ff, $80, $14, $80, $12, $13, $0 , $ae, $ff, $e , $e0, $55
+  .byte $ff, $80, $14, $80, $12, $69, $0 , $f7, $ff, $b , $b0, $55
 particleTable_tableEnd:
 allocateParticle: 		.byte 	0
 
