@@ -198,7 +198,10 @@ next:
     tya
     clc
     adc         #2
-    and         #$1f        ; 16*2 random colors
+    cmp         15*2        ; use 15 so relatively prime with 256 vectors
+    bne         :+
+    lda         #0
+:
     sta         particleColorReadPtr
 
     ; Not setting background as will get set by update
@@ -448,22 +451,24 @@ particleVectorTable:
 .align 256
 
 particleColorTable:
+
     .byte   $0b, $b0        ; pink
     .byte   $0b, $b0        ; pink
     .byte   $01, $10        ; red
     .byte   $0b, $b0        ; pink
+    .byte   $0b, $b0        ; pink
+
     .byte   $09, $90        ; orange
     .byte   $0b, $b0        ; pink
     .byte   $0d, $d0        ; yellow
     .byte   $0b, $b0        ; pink
     .byte   $09, $90        ; orange
-    .byte   $0b, $b0        ; pink
-    .byte   $0b, $b0        ; pink
-    .byte   $0b, $b0        ; pink
-    .byte   $01, $10        ; red
+
     .byte   $0b, $b0        ; pink
     .byte   $0b, $b0        ; pink
     .byte   $01, $10        ; red
+    .byte   $0b, $b0        ; pink
+    .byte   $0b, $b0        ; pink
 
 lineOffset:
     .byte   <$0400
