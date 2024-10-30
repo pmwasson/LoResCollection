@@ -47,8 +47,17 @@ MAP_EMPTY       = $80
 
 .proc main
 
+
+;**** HACK ***
+
+    jmp         particleDemo
+
+;*************
+
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
+
+
 
     lda         #20
     sta         curX
@@ -64,14 +73,6 @@ levelLoop:
     lda         #$00
     sta         drawPage
     jsr         drawBackground
-
-;**** HACK ***
-
-    bit         HISCR           ; display high screen
-    jmp         particleDemo
-
-;*************
-
     jsr         drawLevel
 
     lda         #$04
@@ -1390,6 +1391,7 @@ quitParams:
 ; add utilies
 .include "inline_print.asm"
 .include "grlib.asm"
+.include "particles.asm"
 
 
 ; Globals
