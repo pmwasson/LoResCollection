@@ -164,7 +164,7 @@ next:
     ldx         particleWritePtr
 
     ; set age and position
-    lda         #40
+    lda         #50
     sta         particleTable_age,x
     lda         #$80
     sta         particleTable_x0,x
@@ -272,6 +272,15 @@ loop:
     lda         (screenPtr0),y
     sta         particleTable_bg,x
 
+    ; gravity
+    clc
+    lda         particleTable_vy0,x
+    adc         #3
+    sta         particleTable_vy0,x
+    lda         particleTable_vy1,x
+    adc         #0
+    sta         particleTable_vy1,x
+
 next:
     txa
     clc
@@ -363,7 +372,7 @@ particleTable_color0:   .byte   $00         ; even row color (lower nibble)
 particleTable_color1:   .byte   $00         ; odd row color (upper nibble)
 particleTable_bg:       .byte   $00         ; saved background byte
 particleTable_entryEnd:
-                        .res    PARTICLE_ENTRY_SIZE*14  ; 15 total
+                        .res    PARTICLE_ENTRY_SIZE*20  ; 21 total (21*12 < 256)
 particleTable_tableEnd:
 particleWritePtr:       .byte   0
 particleVectorReadPtr:  .byte   0
