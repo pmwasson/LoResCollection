@@ -57,10 +57,9 @@ MAP_EMPTY       = $80
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
 
-
-    bit         HISCR       ; display high screen (draw on low screen)
-    lda         #$00
+    lda         #$04        ; display low screen, draw high screen
     sta         drawPage
+
     jsr         drawBackground
 
     lda         #0
@@ -74,6 +73,7 @@ levelLoop:
     lda         #20
     sta         curX
     sta         curY
+
     jsr         getBG
     sta         cursorBG
     lda         #$DD
@@ -82,14 +82,23 @@ levelLoop:
 gameLoop:
     jsr         screenFlip
 
-    ; erase
+    ; Erase
+    ;---------------------------
+    lda         selected
+    bmi         :+
+    jmp         checkInput
+:
     lda         cursorBG
     jsr         drawDot
 
-    ; update
+    ; Check input
+    ;---------------------------
+checkInput:
     jsr         getInput
     sta         tempZP
 
+    ; Update position
+    ;---------------------------
     lda         #INPUT_UP
     bit         tempZP
     beq         :+
@@ -130,17 +139,17 @@ gameLoop:
     beq         doneHighlight
 
     ; draw previously highlighted shape as not highlighted
-    lda         highlight
+    ldy         highlight
     bmi         :+
-    jsr         drawMapShape
+    jsr         drawLevelShape
     sta         SPEAKER             ; click when "dropped"
 :
 
     ; draw new highlighted shape
-    lda         curMap
-    sta         highlight
+    ldy         curMap
+    sty         highlight
     bmi         :+
-    jsr         drawMapShapeHighlight
+    jsr         drawLevelShapeHighlight
 :
 
 doneHighlight:
@@ -154,291 +163,11 @@ doneHighlight:
     jmp         gameLoop
 
 cursorBG:       .byte   0
-highlight:      .byte   MAP_EMPTY
 curMap:         .byte   0
 
-
-
-
-
-    lda         selected
-    bmi         :+
-    jsr         eraseSelected
-:
-
-    ;------------------
-    ; Update
-    ;------------------
-
-    lda         selected
-    bpl         :+
-    jsr         highlightShape
-:
-
-    ;------------------
-    ; draw new
-    ;------------------
-
-    ldx         drawPage
-    lda         selected
-    bmi         :+
-    jsr         drawSelected
-:
-
-    jsr         drawCursor
-
-
-    ;------------------
-    ; Check input
-    ;------------------
-
-    lda         selected
-    bpl         doSelected
-
-    ; Is cursor on a shape?
-    jsr         readMap
-    cmp         #MAP_WALL
-    bcs         :+
-
-    ; no object selected
-    lda         BUTTON0
-    bpl         :+
-
-    ; new selected
-    jsr         setSelected
-    jmp         :+
-
-doSelected:
-    lda         BUTTON0
-    bmi         :+          ; still selected
-
-    ; unselect
-    jsr         clearSelected
-    sta         SPEAKER
-:
-
-
-    ; joystick
-    lda         gameTime
-    and         #$3f
-    bne         :+          ; check once every 64 loops
-    lda         paddleX
-    cmp         #256-60
-    bcc         checkLeft
-    jmp         doRight
-checkLeft:
-    cmp         #60
-    bcs         :+
-    jmp         doLeft
-:
-    lda         gameTime
-    eor         #$20
-    and         #$3f
-    bne         :+          ; check once every 64 loops (out of phase with X)
-    lda         paddleY
-    cmp         #256-60
-    bcc         checkUp
-    jmp         doDown
-checkUp:
-    cmp         #60
-    bcs         :+
-    jmp         doUp
-:
-
-    ; keypress?
-    ldx         #0
-    stx         repeatKey
-    lda         KBD
-    bmi         :+
-
-    inc         keyWait
-    bne         noKey
-    stx         keyWait
-    stx         prevKey
-noKey:
-    jmp         gameLoop
-:
-    bit         KBDSTRB
-    stx         keyWait
-
-    cmp         #KEY_TAB
-    bne         :+
-    inc         levelNumber
-    inc         levelNumber
-    jmp         levelLoop
-:
-
-    cmp         #KEY_CTRL_C
-    bne         :+
-    jsr         TEXT
-    jmp         monitor
-:
-
-    cmp         #KEY_ESC
-    bne         :+
-    jmp         quit
-:
-
-    ; check for repeat
-    cmp         prevKey
-    bne         :+
-    inc         repeatKey
-:
-    sta         prevKey
-
-    ; directions
-    cmp         #KEY_LEFT
-    beq         doLeft
-    cmp         #KEY_RIGHT
-    beq         doRight
-    cmp         #KEY_UP
-    beq         doUp
-    cmp         #KEY_DOWN
-    beq         doDown
-
-    jsr         soundBump
-    jmp         gameLoop
-
-
-repeatLeft:
-    lda         #0
-    sta         repeatKey
-doLeft:
-    lda         moveHorizontal
-    beq         :+
-    dec         curX
-    jsr         checkCollision
-    beq         :+
-    inc         curX            ; restore
-:
-    lda         repeatKey
-    bne         repeatLeft
-    jmp         gameLoop
-
-repeatRight:
-    lda         #0
-    sta         repeatKey
-doRight:
-    lda         moveHorizontal
-    beq         :+
-    inc         curX
-    jsr         checkCollision
-    beq         :+
-    dec         curX            ; restore
-:
-    lda         repeatKey
-    bne         repeatRight
-    jmp         gameLoop
-
-repeatUp:
-    lda         #0
-    sta         repeatKey
-doUp:
-    lda         moveVertical
-    beq         :+
-    dec         curY
-    jsr         checkCollision
-    beq         :+
-    inc         curY            ; restore
-:
-    lda         repeatKey
-    bne         repeatUp
-    jmp         gameLoop
-
-repeatDown:
-    lda         #0
-    sta         repeatKey
-doDown:
-    lda         moveVertical
-    beq         :+
-    inc         curY
-    jsr         checkCollision
-    beq         :+
-    dec         curY            ; restore
-:
-    lda         repeatKey
-    bne         repeatDown
-    jmp         gameLoop
-
-prevKey:        .byte   0
-repeatKey:      .byte   0
-keyWait:        .byte   0
 .endproc
 
-.proc highlightShape
-    jsr         readMap
-    sta         highlight
 
-    ; is current same as prev?
-    ldx         drawPage
-    cmp         prevHighlight0,x
-    beq         rotateHighlight
-
-    ; was a shape previous highlighted?
-    lda         prevHighlight0,x
-    cmp         #MAP_WALL
-    bcs         :+
-
-    ; multiply by 3
-    clc
-    sta         tempZP
-    adc         tempZP
-    adc         tempZP
-    tay
-    lda         levelData,y
-    and         #SHAPE_HIGHLIGHT_CLEAR
-    sta         levelData,y
-    jsr         drawLevelShape
-    sta         SPEAKER                     ; click when a piece is "dropped"
-:
-
-    ; is the cursor on a shape
-    lda         highlight
-    cmp         #MAP_WALL
-    bcs         rotateHighlight
-    clc
-    sta         tempZP
-    adc         tempZP
-    adc         tempZP
-    tay
-    lda         levelData,y
-    ora         #SHAPE_HIGHLIGHT_SET
-    sta         levelData,y
-    jsr         drawLevelShape
-
-rotateHighlight:
-    ldx         drawPage
-    lda         highlight
-    sta         prevHighlight0,x
-
-    rts
-.endproc
-
-.proc eraseSelected
-    ldy         selectedIndex
-    ldx         drawPage
-    lda         prevCurX0,x
-    sta         levelData+1,y
-    lda         prevCurY0,x
-    sta         levelData+2,y
-    jsr         eraseLevelShape
-    rts
-.endproc
-
-.proc drawSelected
-    ; update selected shape
-    ldy         selectedIndex
-    lda         levelData,y
-    ora         #SHAPE_HIGHLIGHT_SET
-    sta         levelData,y
-    lda         curX
-    sta         levelData+1,y
-    lda         curY
-    sta         levelData+2,y
-
-    jsr         drawLevelShape
-    rts
-.endproc
 
 ;-----------------------------------------------------------------------------
 ; Get input
@@ -570,34 +299,26 @@ lastKey:        .byte   0
 ; Set selected
 ;-----------------------------------------------------------------------------
 .proc setSelected
-
-    lda         highlight
     sta         selected
-    clc
-    adc         selected
-    adc         selected        ; *3
-    tay
-    sty         selectedIndex
 
     ; set offset
     sec
     lda         curX
-    sbc         levelData+1,y   ; x cord
+    sbc         levelDataX,y   ; x cord
     sta         selectedOffsetX
     sec
     lda         curY
-    sbc         levelData+2,y   ; y cord
+    sbc         levelDataY,y   ; y cord
     sta         selectedOffsetY
 
     ; set cursor
-    lda         levelData+1,y   ; x cord
+    lda         levelDataX,y   ; x cord
     sta         curX
-    lda         levelData+2,y   ; x cord
+    lda         levelDataY,y   ; x cord
     sta         curY
 
     ; look up movement
-    lda         levelData,y
-    and         #$7             ; ignore highlight
+    lda         levelDataShape,y
     sta         selectedShape
     tay
     lda         moveHorizontalTable,y
@@ -634,9 +355,9 @@ lastKey:        .byte   0
     ; update data
     ldy         selectedIndex
     lda         curX
-    sta         levelData+1,y
+    sta         levelDataX,y
     lda         curY
-    sta         levelData+2,y
+    sta         levelDataY,y
 
     ; restore cursor
     clc
@@ -732,53 +453,53 @@ background:
 
     ldy         #0
 loop:
-    inc         shapeIndex      ; shapeIndex = y/3
+    inc         shapeIndex          ; shapeIndex = y/3
+    ldx         shapeIndex
     lda         (mapPtr0),y
-    sta         levelData,y     ; shape
-    bpl         :+              ; check if done
-    rts                         ; done
+    sta         levelDataShape,x    ; shape
+    bpl         :+                  ; check if done
+    rts                             ; done
 :
     iny
     lda         (mapPtr0),y
     tax
     lda         translateX,x
-    sta         levelData,y     ; x cord
+    ldx         shapeIndex
+    sta         levelDataX,x        ; x cord
     iny
     lda         (mapPtr0),y
     tax
     lda         translateY,x
-    sta         levelData,y     ; y cord
+    ldx         shapeIndex
+    sta         levelDataY,x        ; y cord
     iny
 
     sty         tempY
     lda         shapeIndex
     jsr         setCollisionMap
     ldy         tempY
+
     jmp         loop
 
 tempY:          .byte   0
 
 .endproc
 
+;-----------------------------------------------------------------------------
+; Set collision map
+;-----------------------------------------------------------------------------
 .proc setCollisionMap
-
-    ; multiply index by 3
-    clc
-    sta         tempZP
-    adc         tempZP
-    adc         tempZP
     tay
 
     ; fill in collision map
     clc
-    ldx         levelData+1,y   ; x
+    ldx         levelDataX,y   ; x
     lda         levelX,x
-    ldx         levelData+2,y   ; y
+    ldx         levelDataY,y   ; y
     adc         levelY,x
     tax
 
-    lda         levelData,y
-    and         #$7             ; ignore highlight
+    lda         levelDataShape,y
 
     cmp         #SHAPE_2X1
     bne         :+
@@ -820,21 +541,15 @@ tempY:          .byte   0
 
 .endproc
 
-.proc initLevel
-    ; init cursor
-    lda         #$ff
-    sta         selected
-    lda         #39
-    sta         prevCurX0
-    sta         prevCurX1
-    lda         #0
-    sta         prevCurY0
-    sta         prevCurY1
+;-----------------------------------------------------------------------------
+; Init level
+;-----------------------------------------------------------------------------
 
-    ; clear highlight & selected
-    lda         #$ff
-    sta         prevHighlight0
-    sta         prevHighlight1
+.proc initLevel
+    ; clear selection
+    lda         #MAP_EMPTY
+    sta         highlight
+    sta         selected
 
     ; clear collision map
     ldy         #0
@@ -996,36 +711,27 @@ tempY:          .byte   0
     tay
 
 loop:
-    lda         levelData,y
+    ldy         mapIndex
+    lda         levelDataShape,y
     bpl         :+              ; check if done
     rts                         ; done
 :
     ldy         mapIndex
     jsr         drawLevelShape
-    clc
-    lda         mapIndex
-    adc         #3
-    sta         mapIndex
-    tay
+    inc         mapIndex
     jmp         loop
 
 mapIndex:       .byte       0
 
 .endproc
 
-.proc drawMapShape
-    ; *3
-    sta         tempZP
-    clc
-    adc         tempZP
-    adc         tempZP
-    tay
-    lda         levelData,y
+.proc drawLevelShape
+    lda         levelDataShape,y
     asl
     tax
-    lda         levelData+1,y
+    lda         levelDataX,y
     sta         tileX
-    lda         levelData+2,y
+    lda         levelDataY,y
     sta         tileY
     lda         shapeTable,x
     sta         tilePtr0
@@ -1035,19 +741,13 @@ mapIndex:       .byte       0
     rts
 .endproc
 
-.proc drawMapShapeHighlight
-    ; *3
-    sta         tempZP
-    clc
-    adc         tempZP
-    adc         tempZP
-    tay
-    lda         levelData,y
+.proc drawLevelShapeHighlight
+    lda         levelDataShape,y
     asl
     tax
-    lda         levelData+1,y
+    lda         levelDataX,y
     sta         tileX
-    lda         levelData+2,y
+    lda         levelDataY,y
     sta         tileY
     lda         shapeTable+16,x
     sta         tilePtr0
@@ -1057,29 +757,13 @@ mapIndex:       .byte       0
     rts
 .endproc
 
-.proc drawLevelShape
-    lda         levelData,y
-    asl
-    tax
-    lda         levelData+1,y
-    sta         tileX
-    lda         levelData+2,y
-    sta         tileY
-    lda         shapeTable,x
-    sta         tilePtr0
-    lda         shapeTable+1,x
-    sta         tilePtr1
-    jsr         drawShape
-    rts
-.endproc
-
 .proc eraseLevelShape
-    lda         levelData,y
+    lda         levelDataShape,y
     asl
     tax
-    lda         levelData+1,y
+    lda         levelDataX,y
     sta         tileX
-    lda         levelData+2,y
+    lda         levelDataY,y
     sta         tileY
     lda         shapeTable,x
     sta         tilePtr0
@@ -1414,7 +1098,10 @@ shapeIndex:         .byte   0
 
 .align 256
 
-levelData:          .res    3*20
+;levelData:          .res    3*20
+levelDataShape:      .res   20
+levelDataX:          .res   20
+levelDataY:          .res   20
 
 ; 9x9 map for collisions
 ; $80 = free space
