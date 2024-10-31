@@ -50,7 +50,7 @@ MAP_EMPTY       = $80
 
 ;**** HACK ***
 
-    jmp         particleDemo
+    ;jmp         particleDemo
 
 ;*************
 
@@ -58,74 +58,108 @@ MAP_EMPTY       = $80
     jsr         GR          ; set low-res graphics mode
 
 
-
-    lda         #20
-    sta         curX
-    sta         curY
+    bit         HISCR       ; display high screen (draw on low screen)
+    lda         #$00
+    sta         drawPage
+    jsr         drawBackground
 
     lda         #0
     sta         levelNumber
 
 levelLoop:
     jsr         loadLevel
-    jsr         initCursor
-
-    lda         #$00
-    sta         drawPage
-    jsr         drawBackground
     jsr         drawLevel
 
-    lda         #$04
-    sta         drawPage
-    jsr         drawBackground
-    jsr         drawLevel
+    ; init cursor
+    lda         #20
+    sta         curX
+    sta         curY
+    jsr         getBG
+    sta         cursorBG
+    lda         #$DD
+    jsr         drawDot
 
 gameLoop:
+    jsr         screenFlip
 
-    inc         gameTime
+    ; erase
+    lda         cursorBG
+    jsr         drawDot
 
-    ;------------------
-    ; Switch display
-    ;------------------
+    ; update
+    jsr         getInput
+    sta         tempZP
 
-    ; Switch page
-    lda         PAGE2           ; bit 7 = page2 displayed
-    bmi         switchTo1
-
-    ; switch page 2
-    bit         HISCR           ; display high screen
-    lda         #$00            ; update low screen
-    sta         drawPage
-
-    ; Update X
-    lda         gameTime
-    and         #$1e
-    bne         :+
-    ldx         #0
-    jsr         PREAD           ; read joystick X
-    sty         paddleX
-    jmp         :+
-
-switchTo1:
-    ; switch page
-    bit         LOWSCR          ; display low screen
-    lda         #$04            ; update high screen
-    sta         drawPage
-
-    ; Update Y
-    lda         gameTime
-    and         #$1e
-    bne         :+
-    ldx         #1
-    jsr         PREAD           ; read joystick Y
-    sty         paddleY
+    lda         #INPUT_UP
+    bit         tempZP
+    beq         :+
+    dec         curY
+    jsr         checkCollision
+    beq         :+
+    inc         curY
+:
+    lda         #INPUT_DOWN
+    bit         tempZP
+    beq         :+
+    inc         curY
+    jsr         checkCollision
+    beq         :+
+    dec         curY
+:
+    lda         #INPUT_LEFT
+    bit         tempZP
+    beq         :+
+    dec         curX
+    jsr         checkCollision
+    beq         :+
+    inc         curX
+:
+    lda         #INPUT_RIGHT
+    bit         tempZP
+    beq         :+
+    inc         curX
+    jsr         checkCollision
+    beq         :+
+    dec         curX
 :
 
-    ;------------------
-    ; erase previous
-    ;------------------
+    ; Check highlight
+    jsr         readMap
+    sta         curMap
+    cmp         highlight
+    beq         doneHighlight
 
-    jsr         eraseCursor
+    ; draw previously highlighted shape as not highlighted
+    lda         highlight
+    bmi         :+
+    jsr         drawMapShape
+    sta         SPEAKER             ; click when "dropped"
+:
+
+    ; draw new highlighted shape
+    lda         curMap
+    sta         highlight
+    bmi         :+
+    jsr         drawMapShapeHighlight
+:
+
+doneHighlight:
+
+    ; draw
+    jsr         getBG
+    sta         cursorBG
+    lda         #$DD
+    jsr         drawDot
+
+    jmp         gameLoop
+
+cursorBG:       .byte   0
+highlight:      .byte   MAP_EMPTY
+curMap:         .byte   0
+
+
+
+
 
     lda         selected
     bmi         :+
@@ -404,6 +438,132 @@ rotateHighlight:
 
     jsr         drawLevelShape
     rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Get input
+;   Return joystick or keyboard input
+;-----------------------------------------------------------------------------
+INPUT_RIGHT     = $01
+INPUT_LEFT      = $02
+INPUT_UP        = $04
+INPUT_DOWN      = $08
+INPUT_ACTION    = $10
+INPUT_OTHER     = $40
+INPUT_BUTTON    = $80
+
+.proc getInput
+
+    lda         #16
+    sta         timeout         ; if no input after about 1/10 of a second
+
+loop:
+    ldx         #0
+    jsr         PREAD           ; read joystick X
+    sty         paddleX
+
+    jsr         wait
+    bmi         keypress
+
+    ldx         #1
+    jsr         PREAD           ; read joystick 1
+    sty         paddleY
+
+    jsr         wait
+    bmi         keypress
+
+    ; check if button changed state
+    lda         BUTTON0
+    and         #$80
+    cmp         button0
+    beq         :+
+    sta         button0
+    rts                         ; bit 7 = button state
+:
+
+    ; if no keyboard or button, return joystick direction if any
+
+    ; quantize joystick coordinates
+    lda         paddleX
+    rol
+    rol
+    rol
+    and         #$03
+    sta         tempZP          ; X[7:6] -> [1:0]
+    lda         paddleY
+    ror
+    ror
+    ror
+    ror
+    and         #$0c            ; Y[7:6] -> [3:2]
+    ora         tempZP
+    tax
+    lda         joystickDirection,x
+    beq         :+
+    rts
+:
+    dec         timeout
+    bne         loop
+    lda         #0
+    rts
+
+keypress:
+    sta         lastKey
+    sta         KBDSTRB
+    cmp         #KEY_RIGHT
+    bne         :+
+    lda         #INPUT_RIGHT
+    rts
+:
+    cmp         #KEY_LEFT
+    bne         :+
+    lda         #INPUT_LEFT
+    rts
+:
+    cmp         #KEY_UP
+    bne         :+
+    lda         #INPUT_UP
+    rts
+:
+    cmp         #KEY_DOWN
+    bne         :+
+    lda         #INPUT_DOWN
+    rts
+:
+    cmp         #KEY_SPACE
+    bne         :+
+    lda         #INPUT_ACTION
+    rts
+:
+    lda         #INPUT_OTHER
+    rts
+
+wait:
+    ; wait at least 3 miliseconds
+    ; 231 * 13 =~ 3000
+    ldx         #230
+:
+    lda         KBD             ; 4
+    bmi         doneWait        ; 2 (not taken)
+    nop                         ; 2
+    dex                         ; 2
+    bne         :-              ; 3 (taken)
+doneWait:
+    rts
+
+; 4x4 Look up table of joystick directions
+joystickDirection:
+                .byte   INPUT_LEFT|INPUT_UP,   INPUT_UP,   INPUT_UP,   INPUT_RIGHT|INPUT_UP
+                .byte   INPUT_LEFT,            0,          0,          INPUT_RIGHT
+                .byte   INPUT_LEFT,            0,          0,          INPUT_RIGHT
+                .byte   INPUT_LEFT|INPUT_DOWN, INPUT_DOWN, INPUT_DOWN, INPUT_RIGHT|INPUT_DOWN
+
+timeout:        .byte   0
+paddleX:        .byte   0
+paddleY:        .byte   0
+button0:        .byte   0
+lastKey:        .byte   0
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -853,6 +1013,49 @@ mapIndex:       .byte       0
 
 .endproc
 
+.proc drawMapShape
+    ; *3
+    sta         tempZP
+    clc
+    adc         tempZP
+    adc         tempZP
+    tay
+    lda         levelData,y
+    asl
+    tax
+    lda         levelData+1,y
+    sta         tileX
+    lda         levelData+2,y
+    sta         tileY
+    lda         shapeTable,x
+    sta         tilePtr0
+    lda         shapeTable+1,x
+    sta         tilePtr1
+    jsr         drawShape
+    rts
+.endproc
+
+.proc drawMapShapeHighlight
+    ; *3
+    sta         tempZP
+    clc
+    adc         tempZP
+    adc         tempZP
+    tay
+    lda         levelData,y
+    asl
+    tax
+    lda         levelData+1,y
+    sta         tileX
+    lda         levelData+2,y
+    sta         tileY
+    lda         shapeTable+16,x
+    sta         tilePtr0
+    lda         shapeTable+17,x
+    sta         tilePtr1
+    jsr         drawShape
+    rts
+.endproc
 
 .proc drawLevelShape
     lda         levelData,y
@@ -1015,229 +1218,6 @@ loopx:
 
 .endproc
 
-
-;-----------------------------------------------------------------------------
-; Draw shape -- draw lores shape starting at any x,y
-;
-;  tileX, tileY and tilePtr must be set before calling
-;
-;  tileX, tileY are pixel coordinates.
-;
-;  Each shape is defined twice: once starting at at even row and once starting
-;  at an odd row.
-;
-;  Draw lores shape defined by
-;  0         - width (pixels)
-;  1         - height (pixels)
-;  2         - offset to shifted data in bytes
-;  3+        - data bytes starting on even row
-;  3+offset+ - data bytes starting on odd row
-;
-;  Total size must be <= 256 bytes and all data on same page
-;-----------------------------------------------------------------------------
-
-.proc drawShape
-
-    ldy         #0
-    lda         (tilePtr0),y
-    sta         shapeWidth
-    inc         tilePtr0
-
-    lda         (tilePtr0),y
-    sta         shapeHeight
-    clc
-    adc         #1
-    lsr
-    sta         shapeHeightBytes
-    inc         tilePtr0
-
-    lda         (tilePtr0),y
-    sta         shapeOffset
-    inc         tilePtr0
-
-    lda         tileY
-    eor         shapeHeight
-    and         #1
-    sta         shapeMaskLast
-
-    ; setup even case, then overwrite if off
-    lda         tileY
-    lsr
-    sta         tempZP
-    bcc         even
-
-    clc
-    lda         shapeOffset
-    adc         tilePtr0
-    sta         tilePtr0
-
-    ; first row -- mask upper pixel
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopFirst:
-    lda         (screenPtr0),y
-    and         #$0F            ; keep upper pixel
-    sta         tempZP
-    lda         (tilePtr0),y
-    and         #$F0            ; use lower pixel
-    ora         tempZP
-    sta         (screenPtr0),y
-    dey
-    bpl         loopFirst
-
-    lda         tilePtr0
-    adc         shapeWidth
-    sta         tilePtr0
-
-    lda         tileY
-    lsr
-    sta         tempZP
-    inc         tempZP
-
-    dec         shapeHeightBytes    ; 1 row done
-    bne         :+                  ; never equal, and never -2
-
-even:
-    lda         shapeMaskLast
-    beq         :+
-    dec         shapeHeightBytes
-:
-    ldx         shapeHeightBytes
-
-loopY:
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopX:
-    lda         (screenPtr0),y
-    lda         (tilePtr0),y
-    sta         (screenPtr0),y
-    dey
-    bpl         loopX
-
-    lda         tilePtr0
-    adc         shapeWidth
-    sta         tilePtr0
-
-    inc         tempZP          ; next line
-
-    dex
-    bne         loopY
-
-    lda         shapeMaskLast
-    bne         lastLine
-    rts                         ; Done
-
-lastLine:
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopLast:
-    lda         (screenPtr0),y
-    and         #$F0            ; keep lower pixel
-    sta         tempZP
-    lda         (tilePtr0),y
-    and         #$0F            ; use upper pixel
-    ora         tempZP
-    sta         (screenPtr0),y
-    dey
-    bpl         loopLast
-
-    rts
-
-shapeWidth:         .byte       0
-shapeHeight:        .byte       0
-shapeHeightBytes:   .byte       0
-shapeOffset:        .byte       0
-shapeMaskLast:      .byte       0
-
-.endProc
-
-;-----------------------------------------------------------------------------
-; Erase shape -- fill shape size with background color at tileX, tileY
-; (tilePtr not changed)
-;-----------------------------------------------------------------------------
-
-.proc eraseShape
-
-    ldy         #0
-    lda         (tilePtr0),y
-    sta         shapeWidth
-    iny
-    lda         (tilePtr0),y
-    sta         shapeHeight
-
-    lda         tileY
-    lsr
-    sta         tempZP
-    bcc         even
-
-    ; first row -- mask upper pixel
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopFirst:
-    lda         (screenPtr0),y
-    and         #$0F            ; keep upper pixel
-    ora         #BG_LOWER       ; background
-    sta         (screenPtr0),y
-    dey
-    bpl         loopFirst
-    dec         shapeHeight     ; 1 pixel row done
-    inc         tempZP          ; next row
-
-even:
-
-loopY:
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopX:
-    lda         #BG_BOTH        ; background
-    sta         (screenPtr0),y
-    dey
-    bpl         loopX
-    inc         tempZP          ; next line
-
-    dec         shapeHeight
-    dec         shapeHeight     ; 2 pixel rows done
-    lda         shapeHeight
-    beq         done
-    cmp         #1
-    bne         loopY
-
-    ; 1 row left
-lastLine:
-    jsr         setScreenPtr
-
-    ldy         shapeWidth
-    dey
-
-loopLast:
-    lda         (screenPtr0),y
-    and         #$F0            ; keep lower pixel
-    ora         #BG_UPPER       ; background
-    sta         (screenPtr0),y
-    dey
-    bpl         loopLast
-done:
-    rts
-
-shapeWidth:         .byte       0
-shapeHeight:        .byte       0
-
-.endProc
 
 ;-----------------------------------------------------------------------------
 ; Erase Cursor

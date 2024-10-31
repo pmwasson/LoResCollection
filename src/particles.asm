@@ -84,30 +84,63 @@
     ldx         #PATTERN_BLUE_BRICK
     jsr         drawPattern
 
+    jsr         getBG
+    sta         ballBG
+
 loop:
     jsr         screenFlip      ; Set up drawing page
 
     jsr         eraseParticles
 
+    lda         ballBG
+    jsr         drawDot
+
     lda         KBD
     bpl         update
+    sta         KBDSTRB
+
+    cmp         #KEY_RIGHT
+    bne         :+
+    inc         curX
+:
+
+    cmp         #KEY_LEFT
+    bne         :+
+    dec         curX
+:
+
+    cmp         #KEY_UP
+    bne         :+
+    dec         curY
+:
+
+    cmp         #KEY_DOWN
+    bne         :+
+    inc         curY
+:
 
     cmp         #KEY_ESC
     bne         :+
     brk
 :
 
-    sta         KBDSTRB
     jsr         allocateParticle
-    jsr         allocateParticle
-    jsr         allocateParticle
+    ;jsr         allocateParticle
+    ;jsr         allocateParticle
 
 update:
+
+    jsr         getBG
+    sta         ballBG
+    lda         #$DD
+    jsr         drawDot
+
     jsr         updateParticles
     jsr         drawParticles
 
     jmp         loop
 
+ballBG:         .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -461,7 +494,7 @@ particleColorTable:
 
     .byte   $09, $90        ; orange
     .byte   $0b, $b0        ; pink
-    .byte   $0d, $d0        ; yellow
+    .byte   $01, $10        ; red
     .byte   $0b, $b0        ; pink
     .byte   $09, $90        ; orange
 

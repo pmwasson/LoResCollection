@@ -107,7 +107,283 @@ loop:
 
 .endproc
 
-.align 256
+;-----------------------------------------------------------------------------
+; drawDot
+;-----------------------------------------------------------------------------
+.proc drawDot
+    sta         tempZP
+    and         #$0f
+    sta         color+0
+    lda         tempZP
+    and         #$f0
+    sta         color+1
+    lda         curY
+    lsr                         ; divide by 2
+    tay
+    lda         curX
+    clc
+    adc         lineOffset,y
+    sta         screenPtr0
+    lda         linePage,y
+    adc         drawPage
+    sta         screenPtr1
+    ldy         #0
+    lda         curY
+    and         #1
+    tax
+    lda         (screenPtr0),y
+    and         mask,x
+    ora         color,x
+    sta         (screenPtr0),y
+    rts
+
+mask:           .byte   $f0,$0f
+color:          .byte   $0e,$e0
+.endProc
+
+;-----------------------------------------------------------------------------
+; getBG
+;   return background byte at curX,curY
+;-----------------------------------------------------------------------------
+.proc getBG
+    lda         curY
+    lsr                         ; divide by 2
+    tay
+    lda         curX
+    clc
+    adc         lineOffset,y
+    sta         screenPtr0
+    lda         linePage,y
+    adc         drawPage
+    sta         screenPtr1
+    ldy         #0
+    lda         (screenPtr0),y
+    rts
+.endProc
+
+;-----------------------------------------------------------------------------
+; Draw shape -- draw lores shape starting at any x,y
+;
+;  tileX, tileY and tilePtr must be set before calling
+;
+;  tileX, tileY are pixel coordinates.
+;
+;  Each shape is defined twice: once starting at at even row and once starting
+;  at an odd row.
+;
+;  Draw lores shape defined by
+;  0         - width (pixels)
+;  1         - height (pixels)
+;  2         - offset to shifted data in bytes
+;  3+        - data bytes starting on even row
+;  3+offset+ - data bytes starting on odd row
+;
+;  Total size must be <= 256 bytes and all data on same page
+;-----------------------------------------------------------------------------
+
+.proc drawShape
+
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         shapeWidth
+    inc         tilePtr0
+
+    lda         (tilePtr0),y
+    sta         shapeHeight
+    clc
+    adc         #1
+    lsr
+    sta         shapeHeightBytes
+    inc         tilePtr0
+
+    lda         (tilePtr0),y
+    sta         shapeOffset
+    inc         tilePtr0
+
+    lda         tileY
+    eor         shapeHeight
+    and         #1
+    sta         shapeMaskLast
+
+    ; setup even case, then overwrite if off
+    lda         tileY
+    lsr
+    sta         tempZP
+    bcc         even
+
+    clc
+    lda         shapeOffset
+    adc         tilePtr0
+    sta         tilePtr0
+
+    ; first row -- mask upper pixel
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopFirst:
+    lda         (screenPtr0),y
+    and         #$0F            ; keep upper pixel
+    sta         tempZP
+    lda         (tilePtr0),y
+    and         #$F0            ; use lower pixel
+    ora         tempZP
+    sta         (screenPtr0),y
+    dey
+    bpl         loopFirst
+
+    lda         tilePtr0
+    adc         shapeWidth
+    sta         tilePtr0
+
+    lda         tileY
+    lsr
+    sta         tempZP
+    inc         tempZP
+
+    dec         shapeHeightBytes    ; 1 row done
+    bne         :+                  ; never equal, and never -2
+
+even:
+    lda         shapeMaskLast
+    beq         :+
+    dec         shapeHeightBytes
+:
+    ldx         shapeHeightBytes
+
+loopY:
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopX:
+    lda         (screenPtr0),y
+    lda         (tilePtr0),y
+    sta         (screenPtr0),y
+    dey
+    bpl         loopX
+
+    lda         tilePtr0
+    adc         shapeWidth
+    sta         tilePtr0
+
+    inc         tempZP          ; next line
+
+    dex
+    bne         loopY
+
+    lda         shapeMaskLast
+    bne         lastLine
+    rts                         ; Done
+
+lastLine:
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopLast:
+    lda         (screenPtr0),y
+    and         #$F0            ; keep lower pixel
+    sta         tempZP
+    lda         (tilePtr0),y
+    and         #$0F            ; use upper pixel
+    ora         tempZP
+    sta         (screenPtr0),y
+    dey
+    bpl         loopLast
+
+    rts
+
+shapeWidth:         .byte       0
+shapeHeight:        .byte       0
+shapeHeightBytes:   .byte       0
+shapeOffset:        .byte       0
+shapeMaskLast:      .byte       0
+
+.endProc
+
+;-----------------------------------------------------------------------------
+; Erase shape -- fill shape size with background color at tileX, tileY
+; (tilePtr not changed)
+;-----------------------------------------------------------------------------
+
+.proc eraseShape
+
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         shapeWidth
+    iny
+    lda         (tilePtr0),y
+    sta         shapeHeight
+
+    lda         tileY
+    lsr
+    sta         tempZP
+    bcc         even
+
+    ; first row -- mask upper pixel
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopFirst:
+    lda         (screenPtr0),y
+    and         #$0F            ; keep upper pixel
+    ora         #BG_LOWER       ; background
+    sta         (screenPtr0),y
+    dey
+    bpl         loopFirst
+    dec         shapeHeight     ; 1 pixel row done
+    inc         tempZP          ; next row
+
+even:
+
+loopY:
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopX:
+    lda         #BG_BOTH        ; background
+    sta         (screenPtr0),y
+    dey
+    bpl         loopX
+    inc         tempZP          ; next line
+
+    dec         shapeHeight
+    dec         shapeHeight     ; 2 pixel rows done
+    lda         shapeHeight
+    beq         done
+    cmp         #1
+    bne         loopY
+
+    ; 1 row left
+lastLine:
+    jsr         setScreenPtr
+
+    ldy         shapeWidth
+    dey
+
+loopLast:
+    lda         (screenPtr0),y
+    and         #$F0            ; keep lower pixel
+    ora         #BG_UPPER       ; background
+    sta         (screenPtr0),y
+    dey
+    bpl         loopLast
+done:
+    rts
+
+shapeWidth:         .byte       0
+shapeHeight:        .byte       0
+
+.endProc
+
 
 ;-----------------------------------------------------------------------------
 ; Lookup Tables
