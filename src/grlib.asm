@@ -310,6 +310,10 @@ shapeMaskLast:      .byte       0
 ; (tilePtr not changed)
 ;-----------------------------------------------------------------------------
 
+BG_UPPER        = $05       ; top pixel
+BG_LOWER        = $50       ; bottom pixel
+BG_BOTH         = BG_UPPER | BG_LOWER
+
 .proc eraseShape
 
     ldy         #0

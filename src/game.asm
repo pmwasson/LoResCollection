@@ -22,15 +22,11 @@ GRID_X          = 5
 GRID_Y          = 5
 GRID_HEIGHT     = 7
 GRID_WIDTH      = 7
-BG_UPPER        = $05       ; top pixel
-BG_LOWER        = $50       ; bottom pixel
-BG_BOTH         = BG_UPPER | BG_LOWER
-CURSOR_UPPER    = $0D
-CURSOR_LOWER    = $D0
-BOUNDARY_LEFT   = 2
-BOUNDARY_TOP    = 3
-BOUNDARY_RIGHT  = 36
-BOUNDARY_BOTTOM = 37
+
+CURSOR_COLOR    = $DD
+
+OFFSET_LEFT     = 2
+OFFSET_TOP      = 3
 
 SHAPE_PLAYER    = 0
 SHAPE_2X1       = 1
@@ -39,11 +35,17 @@ SHAPE_1X2       = 3
 SHAPE_1X3       = 4
 SHAPE_2x2       = 5
 
-SHAPE_HIGHLIGHT_SET   = $08
-SHAPE_HIGHLIGHT_CLEAR = $F7
-
 MAP_WALL        = $40
 MAP_EMPTY       = $80
+
+INPUT_NONE      = $00
+INPUT_RIGHT     = $01
+INPUT_LEFT      = $02
+INPUT_UP        = $04
+INPUT_DOWN      = $08
+INPUT_ACTION    = $10
+INPUT_OTHER     = $40
+INPUT_BUTTON    = $80
 
 .proc main
 
@@ -76,7 +78,7 @@ levelLoop:
 
     jsr         getBG
     sta         cursorBG
-    lda         #$DD
+    lda         #CURSOR_COLOR
     jsr         drawDot
 
 gameLoop:
@@ -173,13 +175,6 @@ curMap:         .byte   0
 ; Get input
 ;   Return joystick or keyboard input
 ;-----------------------------------------------------------------------------
-INPUT_RIGHT     = $01
-INPUT_LEFT      = $02
-INPUT_UP        = $04
-INPUT_DOWN      = $08
-INPUT_ACTION    = $10
-INPUT_OTHER     = $40
-INPUT_BUTTON    = $80
 
 .proc getInput
 
@@ -207,7 +202,8 @@ loop:
     cmp         button0
     beq         :+
     sta         button0
-    rts                         ; bit 7 = button state
+    lda         #INPUT_BUTTON
+    rts
 :
 
     ; if no keyboard or button, return joystick direction if any
@@ -288,10 +284,6 @@ joystickDirection:
                 .byte   INPUT_LEFT|INPUT_DOWN, INPUT_DOWN, INPUT_DOWN, INPUT_RIGHT|INPUT_DOWN
 
 timeout:        .byte   0
-paddleX:        .byte   0
-paddleY:        .byte   0
-button0:        .byte   0
-lastKey:        .byte   0
 
 .endproc
 
@@ -319,7 +311,6 @@ lastKey:        .byte   0
 
     ; look up movement
     lda         levelDataShape,y
-    sta         selectedShape
     tay
     lda         moveHorizontalTable,y
     sta         moveHorizontal
@@ -353,7 +344,7 @@ lastKey:        .byte   0
     sta         curY
 
     ; update data
-    ldy         selectedIndex
+    ldy         selected
     lda         curX
     sta         levelDataX,y
     lda         curY
@@ -904,102 +895,6 @@ loopx:
 
 
 ;-----------------------------------------------------------------------------
-; Erase Cursor
-;
-;   1) Erase cursor from 2 calls before (2 because of page flipping)
-;
-; Draw Cursor
-;
-;   2) Rotate data
-;   3) Save background
-;   4) Draw updated cursor
-;-----------------------------------------------------------------------------
-
-.proc initCursor
-    lda         #39
-    sta         prevCurX0
-    sta         prevCurX1
-    lda         #0
-    sta         prevCurY0
-    sta         prevCurY1
-    sta         prevBG0
-    sta         prevBG1
-    lda         #1
-    sta         moveHorizontal
-    sta         moveVertical
-.endproc
-
-.proc eraseCursor
-
-    ; erase previous
-    ldx         drawPage
-    lda         prevCurY0,x
-    lsr
-    tay
-    lda         prevCurX0,x
-    clc
-    adc         lineOffset,y
-    sta         screenPtr0
-    lda         linePage,y
-    adc         drawPage
-    sta         screenPtr1
-    ldy         #0
-    lda         prevBG0,x
-    sta         (screenPtr0),y
-
-    rts
-.endproc
-
-.proc drawCursor
-
-    ; grab current
-    ldx         drawPage
-    lda         curY
-    lsr                         ; divide by 2
-    tay
-    lda         curX
-    clc
-    adc         lineOffset,y
-    sta         screenPtr0
-    lda         linePage,y
-    adc         drawPage
-    sta         screenPtr1
-    ldy         #0
-    lda         (screenPtr0),y
-    sta         tempZP
-
-    lda         curY
-    and         #1
-    bne         odd
-    ; even
-    lda         tempZP
-    and         #$F0
-    ora         #CURSOR_UPPER
-    sta         (screenPtr0),y
-done:
-    lda         tempZP
-    sta         prevBG0,x
-    lda         curX
-    sta         prevCurX0,x
-    lda         curY
-    sta         prevCurY0,x
-    rts
-odd:
-    lda         tempZP
-    and         #$0F
-    ora         #CURSOR_LOWER
-    sta         (screenPtr0),y
-    lda         tempZP
-    sta         prevBG0,x
-    lda         curX
-    sta         prevCurX0,x
-    lda         curY
-    sta         prevCurY0,x
-    rts
-.endProc
-
-
-;-----------------------------------------------------------------------------
 ; Monitor
 ;
 ;  Exit to monitor
@@ -1061,38 +956,21 @@ quitParams:
 ; Globals
 ;-----------------------------------------------------------------------------
 
-gameTime:           .byte   0
+; input values
+paddleX:            .byte   0
+paddleY:            .byte   0
+button0:            .byte   0
+lastKey:            .byte   0
+
+highlight:          .byte   0
 selected:           .byte   $ff         ; Negative = none
-selectedIndex:      .byte   0
-selectedShape:      .byte   0
 selectedOffsetX:    .byte   0
 selectedOffsetY:    .byte   0
-paddleX:            .byte   $80
-paddleY:            .byte   $80
 levelNumber:        .byte   0
 
 moveHorizontal:     .byte   1
 moveVertical:       .byte   1
 collisionMask:      .byte   0
-
-; Cursor data
-; Assuming (39,0) is black when starting
-
-; offset by 4 for page index
-prevCurX0:          .byte   39
-prevCurY0:          .byte   0
-prevBG0:            .byte   0
-prevHighlight0:     .byte   $ff          ; Negative = none
-
-prevCurX1:          .byte   39
-prevCurY1:          .byte   0
-prevBG1:            .byte   0
-prevHighlight1:     .byte   $ff         ; Negative = none
-
-; Movement
-highlight:          .byte   0
-
-
 
 shapeIndex:         .byte   0
 
@@ -1168,12 +1046,12 @@ snapY:              .byte    3
 
 translateX:
 .repeat 7, I
-     .byte   I*GRID_X+BOUNDARY_LEFT
+     .byte   I*GRID_X+OFFSET_LEFT
 .endrepeat
 
 translateY:
 .repeat 7, I
-     .byte   I*GRID_Y+BOUNDARY_TOP
+     .byte   I*GRID_Y+OFFSET_TOP
 .endrepeat
 
 ;-----------------------------------------------------------------------------
