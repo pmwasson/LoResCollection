@@ -86,9 +86,11 @@ gameLoop:
 
     ; Erase
     ;---------------------------
-    lda         selected
+    ldy         selected
     bmi         :+
-    jmp         checkInput
+    lda         selected
+    jsr         eraseLevelShape
+    jmp         checkInput          ; no cursor if selected shape
 :
     lda         cursorBG
     jsr         drawDot
@@ -97,46 +99,93 @@ gameLoop:
     ;---------------------------
 checkInput:
     jsr         getInput
-    sta         tempZP
+    sta         inputResult
 
     ; Update position
     ;---------------------------
+    lda         moveVertical
+    beq         skipVertical
+
     lda         #INPUT_UP
-    bit         tempZP
+    bit         inputResult
     beq         :+
+    jsr         updateLockV
     dec         curY
     jsr         checkCollision
     beq         :+
     inc         curY
 :
     lda         #INPUT_DOWN
-    bit         tempZP
+    bit         inputResult
     beq         :+
+    jsr         updateLockV
     inc         curY
     jsr         checkCollision
     beq         :+
     dec         curY
 :
+
+skipVertical:
+    lda         moveHorizontal
+    beq         skipHorizontal
+
     lda         #INPUT_LEFT
-    bit         tempZP
+    bit         inputResult
     beq         :+
+    jsr         updateLockH
     dec         curX
     jsr         checkCollision
     beq         :+
     inc         curX
 :
     lda         #INPUT_RIGHT
-    bit         tempZP
+    bit         inputResult
     beq         :+
+    jsr         updateLockH
     inc         curX
     jsr         checkCollision
     beq         :+
     dec         curX
 :
 
-    ; Check highlight
+skipHorizontal:
+    lda         #INPUT_OTHER
+    bit         inputResult
+    beq         :+
+    jsr         TEXT
+    brk
+:
+
+    ; check map
     jsr         readMap
     sta         curMap
+
+    ; New Selection
+    jsr         isNewSelection
+    beq         :+
+    lda         curMap
+    jsr         setSelected
+    jmp         drawSelected
+:
+
+    ; Drop selection
+    jsr         isDropSelection
+    beq         :+
+    jsr         clearSelected
+    sta         SPEAKER
+    ; assuming highlight will draw the dropped selection
+:
+    ; draw selected
+    ldy         selected
+    bmi         :+
+    jsr         updateSelected
+drawSelected:
+    jsr         drawLevelShapeHighlight
+    jmp         gameLoop
+:
+
+    ; Check highlight
+    lda         curMap
     cmp         highlight
     beq         doneHighlight
 
@@ -164,8 +213,75 @@ doneHighlight:
 
     jmp         gameLoop
 
+isNewSelection:
+    lda         selected
+    bpl         noNewSelection  ; already have selection
+    lda         curMap
+    bmi         noNewSelection  ; nothing under cursor
+
+    lda         #INPUT_BUTTON
+    bit         inputResult
+    beq         :+              ; no button change, check keyboard
+    lda         button0
+    bpl         :+              ; button released (not pressed)
+    lda         #1
+    rts
+:
+    lda         #INPUT_ACTION
+    bit         inputResult
+    beq         noNewSelection
+    lda         #1
+    rts
+noNewSelection:
+    lda         #0
+    rts
+
+isDropSelection:
+    lda         selected
+    bmi         noDropSelection ; nothing selected
+
+    lda         #INPUT_BUTTON
+    bit         inputResult
+    beq         :+              ; no button change, check keyboard
+    lda         button0
+    bmi         :+              ; button pressed (not released)
+    lda         #1
+    rts
+:
+    lda         #INPUT_ACTION
+    bit         inputResult
+    beq         noDropSelection
+    lda         #1
+    rts
+noDropSelection:
+    lda         #0
+    rts
+
+updateLockV:
+    lda         moveBoth
+    bne         :+
+    rts
+:
+    lda         #1
+    sta         moveVertical
+    lda         #0
+    sta         moveHorizontal
+    rts
+
+updateLockH:
+    lda         moveBoth
+    bne         :+
+    rts
+:
+    lda         #0
+    sta         moveVertical
+    lda         #1
+    sta         moveHorizontal
+    rts
+
 cursorBG:       .byte   0
 curMap:         .byte   0
+inputResult:    .byte   0
 
 .endproc
 
@@ -288,10 +404,35 @@ timeout:        .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Update selected
+;-----------------------------------------------------------------------------
+.proc updateSelected
+    ldy         selected
+    lda         curX
+    sta         levelDataX,y
+    lda         curY
+    sta         levelDataY,y
+
+    ; check for win condition!
+    lda         levelDataShape,y
+    cmp         #SHAPE_PLAYER
+    bne         :+                  ; check if player shape
+
+    lda         curX
+    cmp         #40-10
+    bcc         :+                  ; check if over the left edge
+
+    brk
+:
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Set selected
 ;-----------------------------------------------------------------------------
 .proc setSelected
     sta         selected
+    tay
 
     ; set offset
     sec
@@ -303,7 +444,7 @@ timeout:        .byte   0
     sbc         levelDataY,y   ; y cord
     sta         selectedOffsetY
 
-    ; set cursor
+    ; set position
     lda         levelDataX,y   ; x cord
     sta         curX
     lda         levelDataY,y   ; x cord
@@ -316,6 +457,8 @@ timeout:        .byte   0
     sta         moveHorizontal
     lda         moveVerticalTable,y
     sta         moveVertical
+    lda         moveBothTable,y
+    sta         moveBoth
     lda         collisionMaskTable,y
     sta         collisionMask
 
@@ -364,6 +507,8 @@ timeout:        .byte   0
     lda         #1
     sta         moveHorizontal
     sta         moveVertical
+    lda         #0
+    sta         moveBoth
 
     ; restore collision map
     lda         selected
@@ -371,7 +516,7 @@ timeout:        .byte   0
     jsr         setCollisionMap
 
     ; unselect
-    lda         #$ff
+    lda         #MAP_EMPTY
     sta         selected
 
     rts
@@ -970,6 +1115,7 @@ levelNumber:        .byte   0
 
 moveHorizontal:     .byte   1
 moveVertical:       .byte   1
+moveBoth:           .byte   0           ; when set, lock in horizontal or veritcal
 collisionMask:      .byte   0
 
 shapeIndex:         .byte   0

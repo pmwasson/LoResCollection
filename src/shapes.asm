@@ -257,6 +257,7 @@ shapeTable:     .word       shape_player                ; 0
 ;                       -----------------------------------
 moveHorizontalTable:    .byte       1, 1, 1, 0, 0, 1, 0, 0
 moveVerticalTable:      .byte       1, 0, 0, 1, 1, 1, 0, 0
+moveBothTable:          .byte       1, 0, 0, 0, 0, 1, 0, 0
 
 ; Collision checks:
 ;   0 1 2
