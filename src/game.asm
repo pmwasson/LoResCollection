@@ -49,16 +49,36 @@ INPUT_BUTTON    = $80
 
 .proc main
 
+    ; init
     lda         #0
     sta         levelNumber
+    lda         #$05
+    sta         bg0
+    lda         #$50
+    sta         bg1
+    lda         #$55
+    sta         bg2
+
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
 
 levelLoop:
+    lda         #$00        ; clear low screen
+    sta         drawPage
+    jsr         clearScreen
+    lda         #$20        ; inverse space
     bit         LOWSCR
+    bit         MIXCLR
+
+    ldy         #0
+:
+    jsr         wait
+    dey
+    bne         :-
+
+    bit         MIXSET
     lda         #$04        ; display low screen, draw high screen
     sta         drawPage
-
     jsr         drawBackground
     jsr         loadLevel
     jsr         drawLevel
@@ -186,18 +206,20 @@ doneOther:
 :
     ; draw selected
     ldy         selected
-    bmi         :+
+    bmi         checkHighlight
     jsr         updateSelected
-    lda         winCondition
-    beq         drawSelected
-    inc         levelNumber
-    jmp         levelLoop
 
 drawSelected:
     jsr         drawLevelShapeHighlight
+    lda         winCondition
+    beq         :+
+    inc         levelNumber
+    jsr         winner
+    jmp         levelLoop
+:
     jmp         gameLoop
 
-:
+checkHighlight:
     ; Check highlight
     lda         curMap
     cmp         highlight
@@ -347,8 +369,6 @@ inputResult:    .byte   0
 
 .endproc
 
-
-
 ;-----------------------------------------------------------------------------
 ; Get input
 ;   Return joystick or keyboard input
@@ -449,19 +469,6 @@ keypress:
     rts
 :
     lda         #INPUT_OTHER
-    rts
-
-wait:
-    ; wait at least 3 miliseconds
-    ; 231 * 13 =~ 3000
-    ldx         #230
-:
-    lda         KBD             ; 4
-    bmi         doneWait        ; 2 (not taken)
-    nop                         ; 2
-    dex                         ; 2
-    bne         :-              ; 3 (taken)
-doneWait:
     rts
 
 ; 4x4 Look up table of joystick directions
@@ -937,6 +944,58 @@ tempY:          .byte   0
 
 .endproc
 
+
+;-----------------------------------------------------------------------------
+; Winner
+;-----------------------------------------------------------------------------
+.proc winner
+
+    lda         #0
+    sta         index
+    sta         time0
+    sta         time1
+
+loop:
+    jsr         screenFlip
+    jsr         eraseParticles
+
+    lda         time0
+    and         #$7
+    bne         :+
+
+    ldy         index
+    lda         random5to35,y
+    sta         curX
+    lda         random5to35+1,y
+    sta         curY
+    jsr         allocateParticle
+    jsr         allocateParticle
+    jsr         allocateParticle
+    inc         index
+    inc         index
+:
+    jsr         updateParticles
+    jsr         drawParticles
+
+    inc         time0
+    bne         :+
+    inc         time1
+    lda         time1
+    cmp         #3
+    bne         :+
+    rts
+:
+    lda         KBD
+    bpl         loop
+    sta         KBDSTRB
+    rts
+
+time0:          .byte   0
+time1:          .byte   0
+index:          .byte   0
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; draw level
 ;-----------------------------------------------------------------------------
@@ -1284,6 +1343,40 @@ snapY:              .byte    3
                     .byte   28, 28, 28, 28, 28
                     .byte   33, 33, 33, 33, 33
                     .byte   33, 33, 33, 33
+
+random5to35:
+                    .byte   14,  35,  29,  34,  21,  6 ,  10,  15
+                    .byte   17,  14,  34,  18,  33,  10,  5 ,  28
+                    .byte   5 ,  7 ,  23,  16,  15,  27,  22,  8
+                    .byte   6 ,  35,  14,  8 ,  7 ,  27,  24,  34
+                    .byte   30,  20,  35,  33,  18,  16,  7 ,  30
+                    .byte   6 ,  30,  27,  24,  17,  11,  27,  31
+                    .byte   32,  28,  31,  7 ,  30,  35,  27,  32
+                    .byte   25,  13,  21,  18,  26,  27,  21,  7
+                    .byte   32,  8 ,  10,  18,  5 ,  33,  8 ,  7
+                    .byte   15,  31,  14,  6 ,  31,  21,  8 ,  13
+                    .byte   10,  22,  19,  16,  30,  31,  21,  29
+                    .byte   32,  14,  9 ,  18,  11,  24,  17,  13
+                    .byte   35,  26,  24,  8 ,  34,  29,  26,  11
+                    .byte   25,  28,  25,  24,  35,  8 ,  31,  31
+                    .byte   25,  32,  10,  13,  14,  21,  6 ,  6
+                    .byte   15,  27,  32,  10,  14,  19,  16,  31
+                    .byte   27,  10,  7 ,  18,  27,  15,  5 ,  5
+                    .byte   12,  19,  13,  24,  33,  8 ,  20,  7
+                    .byte   33,  15,  13,  16,  27,  8 ,  20,  19
+                    .byte   9 ,  32,  31,  5 ,  8 ,  21,  25,  9
+                    .byte   13,  26,  21,  21,  7 ,  6 ,  32,  10
+                    .byte   25,  32,  22,  15,  6 ,  28,  27,  15
+                    .byte   20,  20,  17,  19,  16,  21,  17,  27
+                    .byte   6 ,  12,  11,  6 ,  8 ,  11,  15,  30
+                    .byte   27,  21,  28,  23,  15,  25,  12,  19
+                    .byte   21,  20,  16,  14,  28,  27,  21,  12
+                    .byte   21,  28,  31,  7 ,  5 ,  35,  6 ,  32
+                    .byte   30,  31,  20,  9 ,  31,  11,  18,  32
+                    .byte   18,  8 ,  19,  31,  10,  22,  21,  7
+                    .byte   6 ,  10,  6 ,  31,  13,  5 ,  20,  8
+                    .byte   13,  16,  19,  27,  11,  10,  7 ,  32
+                    .byte   27,  5 ,  35,  17,  23,  11,  10,  31
 
 ; Lookup tables
 ;-----------------------------------------------------------------------------

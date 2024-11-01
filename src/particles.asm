@@ -199,10 +199,10 @@ next:
     lda         curX
     sta         particleTable_x1,x
     lda         curY
+    sta         particleTable_y1,x
 
     ; set vector
     ldy         particleVectorReadPtr
-    sta         particleTable_y1,x
     lda         particleVectorTable+0,y
     sta         particleTable_vx0,x
     lda         particleVectorTable+1,y
@@ -334,8 +334,6 @@ outOfBounds:
 loop:
     lda         particleTable_age,x
     beq         next
-
-    sta         SPEAKER
 
     lda         particleTable_y1,x
     lsr                         ; divide by 2

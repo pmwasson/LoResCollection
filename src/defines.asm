@@ -52,6 +52,9 @@ tileY           :=  $eb
 drawPage        :=  $d7
 curX		    :=  $1d
 curY 		    :=  $1e
+bg0 			:=  $ed
+bg1 			:=  $ee
+bg2 			:=  $ef
 
 ; Temp
 tempZP 			:=  $09

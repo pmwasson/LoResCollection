@@ -4,6 +4,115 @@
 ; GR Lib
 ; Collection of lo-res graphic routines
 
+
+;-----------------------------------------------------------------------------
+; Wait
+;   Interruptable delay
+;-----------------------------------------------------------------------------
+
+.proc wait
+    ; wait at least 3 miliseconds
+    ; 231 * 13 =~ 3000
+    ldx         #230
+:
+    lda         KBD             ; 4
+    bmi         doneWait        ; 2 (not taken)
+    nop                         ; 2
+    dex                         ; 2
+    bne         :-              ; 3 (taken)
+doneWait:
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; Clear screen
+;   Choose screen based on draw page
+;   Set even bytes to bg0 and odd bytes to bg1
+;-----------------------------------------------------------------------------
+.proc clearScreen
+    ldx         #120-1
+    lda         drawPage
+    beq         clear0
+
+clear1:
+    lda         bg1         ; odd
+    sta         $800,x
+    sta         $880,x
+    sta         $900,x
+    sta         $980,x
+    sta         $A00,x
+    sta         $A80,x
+    sta         $B00,x
+    sta         $B80,x
+    dex
+    lda         bg0         ; even
+    sta         $800,x
+    sta         $880,x
+    sta         $900,x
+    sta         $980,x
+    sta         $A00,x
+    sta         $A80,x
+    sta         $B00,x
+    sta         $B80,x
+    dex
+    bpl         clear1
+    rts
+
+clear0:
+    lda         bg1         ; odd
+    sta         $400,x
+    sta         $480,x
+    sta         $500,x
+    sta         $580,x
+    sta         $600,x
+    sta         $680,x
+    sta         $700,x
+    sta         $780,x
+    dex
+    lda         bg0         ; even
+    sta         $400,x
+    sta         $480,x
+    sta         $500,x
+    sta         $580,x
+    sta         $600,x
+    sta         $680,x
+    sta         $700,x
+    sta         $780,x
+    dex
+    bpl         clear0
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Clear mixed text
+;   Writes the passed in value in A to the lower 4 lines on the page
+;   pointed to by drawPage
+;-----------------------------------------------------------------------------
+.proc clearMixedText
+    ldx         #40-1
+    ldy         drawPage
+    beq         clear0
+
+clear1:
+    sta         $0A50,x
+    sta         $0AD0,x
+    sta         $0B50,x
+    sta         $0BD0,x
+    dex
+    bpl         clear0
+    rts
+
+clear0:
+    sta         $0650,x
+    sta         $06D0,x
+    sta         $0750,x
+    sta         $07D0,x
+    dex
+    bpl         clear0
+    rts
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Screen flip
 ;   Performs the following
@@ -308,11 +417,10 @@ shapeMaskLast:      .byte       0
 ;-----------------------------------------------------------------------------
 ; Erase shape -- fill shape size with background color at tileX, tileY
 ; (tilePtr not changed)
+; Use BG0 for even rows
+;     BG1 for odd rows
+;     BG2 for both
 ;-----------------------------------------------------------------------------
-
-BG_UPPER        = $05       ; top pixel
-BG_LOWER        = $50       ; bottom pixel
-BG_BOTH         = BG_UPPER | BG_LOWER
 
 .proc eraseShape
 
@@ -337,7 +445,7 @@ BG_BOTH         = BG_UPPER | BG_LOWER
 loopFirst:
     lda         (screenPtr0),y
     and         #$0F            ; keep upper pixel
-    ora         #BG_LOWER       ; background
+    ora         bg1             ; lower background
     sta         (screenPtr0),y
     dey
     bpl         loopFirst
@@ -353,7 +461,7 @@ loopY:
     dey
 
 loopX:
-    lda         #BG_BOTH        ; background
+    lda         bg2             ; background
     sta         (screenPtr0),y
     dey
     bpl         loopX
@@ -376,7 +484,7 @@ lastLine:
 loopLast:
     lda         (screenPtr0),y
     and         #$F0            ; keep lower pixel
-    ora         #BG_UPPER       ; background
+    ora         bg0             ; upper background
     sta         (screenPtr0),y
     dey
     bpl         loopLast
