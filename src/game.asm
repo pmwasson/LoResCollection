@@ -162,6 +162,10 @@ skipHorizontal:
     inc         levelNumber
     jmp         levelLoop
 :
+    cmp         #KEY_RETURN
+    bne         :+
+    jmp         levelLoop
+:
 
 doneOther:
 
@@ -697,6 +701,12 @@ tempY:          .byte   0
 ;-----------------------------------------------------------------------------
 
 .proc initLevel
+    lda         #1
+    sta         moveHorizontal
+    sta         moveVertical
+    lda         #0
+    sta         moveBoth
+
     ; clear win condition
     lda         #0
     sta         winCondition
