@@ -19,6 +19,8 @@
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
     bit         HISCR       ; display high screen
+    lda         #$00        ; draw low screen
+    sta         drawPage
 
     lda         #0
     sta         curX

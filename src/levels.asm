@@ -1,8 +1,3 @@
-
-; Tiles
-
-
-
 ; Level Data
         
         ;; The following table give the initial position of the piece for each level

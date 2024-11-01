@@ -49,13 +49,6 @@ INPUT_BUTTON    = $80
 
 .proc main
 
-
-;**** HACK ***
-
-    ;jmp         particleDemo
-
-;*************
-
     lda         #0
     sta         levelNumber
     jsr         HOME        ; clear screen
@@ -102,7 +95,7 @@ checkInput:
 
     ; Update position
     ;---------------------------
-    lda         moveVertical
+    jsr         canMoveVertical
     beq         skipVertical
 
     lda         #INPUT_UP
@@ -125,7 +118,7 @@ checkInput:
 :
 
 skipVertical:
-    lda         moveHorizontal
+    jsr         canMoveHorizontal
     beq         skipHorizontal
 
     lda         #INPUT_LEFT
@@ -166,7 +159,10 @@ skipHorizontal:
     bne         :+
     jmp         levelLoop
 :
-
+    cmp         #KEY_D
+    bne         :+
+    jmp         particleDemo
+:
 doneOther:
 
     ; check map
@@ -297,6 +293,54 @@ updateLockH:
     sta         moveHorizontal
     rts
 
+canMoveVertical:
+    lda         moveVertical
+    beq         :+
+    lda         #1
+    rts
+:
+    lda         moveBoth
+    bne         :+
+    lda         #0
+    rts
+:
+    ; if move both, but not vertical, set if aligned
+    lda         curX
+    tax
+    cmp         snapX,x
+    beq         :+
+    lda         #0
+    rts
+:
+    lda         #1
+    sta         moveVertical
+    rts
+
+canMoveHorizontal:
+    lda         moveHorizontal
+    beq         :+
+    lda         #1
+    rts
+:
+    lda         moveBoth
+    bne         :+
+    lda         #0
+    rts
+:
+    ; if move both, but not horizontal, set if aligned
+    lda         curY
+    tax
+    cmp         snapY,x
+    beq         :+
+    lda         #0
+    rts
+:
+    lda         #1
+    sta         moveHorizontal
+    rts
+
+
+
 cursorBG:       .byte   0
 curMap:         .byte   0
 inputResult:    .byte   0
@@ -384,7 +428,17 @@ keypress:
     lda         #INPUT_UP
     rts
 :
+    cmp         #KEY_A
+    bne         :+
+    lda         #INPUT_UP
+    rts
+:
     cmp         #KEY_DOWN
+    bne         :+
+    lda         #INPUT_DOWN
+    rts
+:
+    cmp         #KEY_Z
     bne         :+
     lda         #INPUT_DOWN
     rts
@@ -780,9 +834,10 @@ checkShape:
     lda         curY
     sta         tempY
 
+c1:
     lda         collisionMask
     and         #%000010        ; Collision 1: x+9
-    beq         :+
+    beq         c2
     clc
     lda         tempX
     adc         #9
@@ -790,12 +845,20 @@ checkShape:
     jsr         readMap
     cmp         #MAP_EMPTY
     bne         collision
+    ; check if at exit
+    lda         selected
+    beq         :+
+    ldx         curX
+    lda         levelX,x
+    cmp         #8
+    beq         collision       ; can't exit
+:
     lda         tempX
     sta         curX
-:
+c2:
     lda         collisionMask
     and         #%000100        ; Collision 2: x+14
-    beq         :+
+    beq         c3
     clc
     lda         tempX
     adc         #14
@@ -803,25 +866,33 @@ checkShape:
     jsr         readMap
     cmp         #MAP_EMPTY
     bne         collision
+    ; check if at exit
+    lda         selected
+    beq         :+
+    ldx         curX
+    lda         levelX,x
+    cmp         #8
+    beq         collision       ; can't exit
+:
     lda         tempX
     sta         curX
-:
+c3:
     lda         collisionMask
     and         #%001000        ; Collision 3: y+9
-    beq         :+
+    beq         c4
     clc
     lda         tempY
     adc         #9
     sta         curY
     jsr         readMap
     cmp         #MAP_EMPTY
-    bne         collision
+    bne         fail
     lda         tempY
     sta         curY
-:
+c4:
     lda         collisionMask
     and         #%010000        ; Collision 4: x+9,y+9
-    beq         :+
+    beq         c5
     clc
     lda         tempX
     adc         #9
@@ -836,10 +907,10 @@ checkShape:
     sta         curX
     lda         tempY
     sta         curY
-:
+c5:
     lda         collisionMask
     and         #%100000        ; Collision 5: y+14
-    beq         :+
+    beq         good
     clc
     lda         tempY
     adc         #14
@@ -849,7 +920,7 @@ checkShape:
     bne         fail
     lda         tempY
     sta         curY
-:
+good:
     ; no collisions
     lda         #0
     rts
@@ -1159,7 +1230,7 @@ levelDataY:          .res   20
 ; 9x9 map for collisions
 ; $80 = free space
 ; $40 = wall
-;                        -1    0    1    2    3    4    5    6    7
+;                            -1    0    1    2    3    4    5    6    7
 emptyMap:           .byte   $40, $40, $40, $40, $40, $40, $40, $40, $40     ; -1
                     .byte   $40, $80, $80, $80, $80, $80, $80, $80, $40     ; 0
                     .byte   $40, $80, $80, $80, $80, $80, $80, $80, $40     ; 1
