@@ -56,18 +56,17 @@ INPUT_BUTTON    = $80
 
 ;*************
 
+    lda         #0
+    sta         levelNumber
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
 
+levelLoop:
+    bit         LOWSCR
     lda         #$04        ; display low screen, draw high screen
     sta         drawPage
 
     jsr         drawBackground
-
-    lda         #0
-    sta         levelNumber
-
-levelLoop:
     jsr         loadLevel
     jsr         drawLevel
 
@@ -151,10 +150,20 @@ skipVertical:
 skipHorizontal:
     lda         #INPUT_OTHER
     bit         inputResult
-    beq         :+
+    beq         doneOther
+    lda         lastKey
+    cmp         #KEY_ESC
+    bne         :+
     jsr         TEXT
     brk
 :
+    cmp         #KEY_TAB
+    bne         :+
+    inc         levelNumber
+    jmp         levelLoop
+:
+
+doneOther:
 
     ; check map
     jsr         readMap
@@ -179,11 +188,16 @@ skipHorizontal:
     ldy         selected
     bmi         :+
     jsr         updateSelected
+    lda         winCondition
+    beq         drawSelected
+    inc         levelNumber
+    jmp         levelLoop
+
 drawSelected:
     jsr         drawLevelShapeHighlight
     jmp         gameLoop
-:
 
+:
     ; Check highlight
     lda         curMap
     cmp         highlight
@@ -421,8 +435,7 @@ timeout:        .byte   0
     lda         curX
     cmp         #40-10
     bcc         :+                  ; check if over the left edge
-
-    brk
+    inc         winCondition        ; Winner!
 :
     rts
 .endproc
@@ -581,7 +594,9 @@ background:
 
     lda         #$FF
     sta         shapeIndex
-    ldx         levelNumber
+    lda         levelNumber
+    asl
+    tax
     lda         levelTable,x
     sta         mapPtr0
     lda         levelTable+1,x
@@ -682,6 +697,10 @@ tempY:          .byte   0
 ;-----------------------------------------------------------------------------
 
 .proc initLevel
+    ; clear win condition
+    lda         #0
+    sta         winCondition
+
     ; clear selection
     lda         #MAP_EMPTY
     sta         highlight
@@ -1111,13 +1130,13 @@ highlight:          .byte   0
 selected:           .byte   $ff         ; Negative = none
 selectedOffsetX:    .byte   0
 selectedOffsetY:    .byte   0
-levelNumber:        .byte   0
+levelNumber:        .byte   0           ; level
+winCondition:       .byte   0
 
 moveHorizontal:     .byte   1
 moveVertical:       .byte   1
 moveBoth:           .byte   0           ; when set, lock in horizontal or veritcal
 collisionMask:      .byte   0
-
 shapeIndex:         .byte   0
 
 .align 256
