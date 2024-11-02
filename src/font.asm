@@ -22,8 +22,9 @@
     sta         curX
     sta         curY
 
+
     jsr         inlineDrawString
-    .byte       "HELLO...!",0
+    .byte       "*+,-./",0
 
     lda         #0
     sta         curX
@@ -116,7 +117,6 @@ printExit:
 ; Draw char
 ;-----------------------------------------------------------------------------
 .proc drawChar
-
     ; check on screen
     lda         curX
     cmp         #40
@@ -124,26 +124,18 @@ printExit:
     rts                         ; exit if off screen
 :
 
-    cpx         #$20            ; is it a space?
-    bne         :+
-    inc         curX
-    inc         curX
-    clc
-    rts
-:
-
+    lda         #0
+    sta         done
     lda         fontIndex,x
     sta         charIndex
     tax
-
 loop:
     lda         font,x
-    sta         charByte
-    bne         :+
-    inc         curX            ; add space between letters
-    clc
-    rts
+    bpl         :+              ; check for done marker
+    inc         done
+    and         #$7f
 :
+    sta         charByte
     lda         curY
     lsr                         ; divide by 2
     tay
@@ -181,10 +173,17 @@ bitLoop:
     bcc         :+
     rts                         ; exit if off screen
 :
+    lda         done
+    beq         :+
+    inc         curX            ; add space between letters
+    clc
+    rts
+:
     inc         charIndex
     ldx         charIndex
     jmp         loop
 
+done:           .byte   0
 row:            .byte   0
 charIndex:      .byte   0
 charByte:       .byte   0
@@ -226,22 +225,22 @@ fontIndex:
     .byte       font_QM - font          ; 29  1D  GS
     .byte       font_QM - font          ; 30  1E  RS
     .byte       font_QM - font          ; 31  1F  US
-    .byte       font_QM - font          ; 32  20  space ; handled special
+    .byte       font_space - font       ; 32  20  space
     .byte       font_EX - font          ; 33  21  !
-    .byte       font_QM - font          ; 34  22  "
-    .byte       font_QM - font          ; 35  23  #
-    .byte       font_QM - font          ; 36  24  $
+    .byte       font_doubleq - font     ; 34  22  "
+    .byte       font_hash - font        ; 35  23  #
+    .byte       font_dollars- font      ; 36  24  $
     .byte       font_percent - font     ; 37  25  %
     .byte       font_QM - font          ; 38  26  &
-    .byte       font_QM - font          ; 39  27  '
-    .byte       font_QM - font          ; 40  28  (
-    .byte       font_QM - font          ; 41  29  )
-    .byte       font_QM - font          ; 42  2A  *
-    .byte       font_QM - font          ; 43  2B  +
-    .byte       font_QM - font          ; 44  2C  ,
-    .byte       font_QM - font          ; 45  2D  -
+    .byte       font_quote - font       ; 39  27  '
+    .byte       font_openp - font       ; 40  28  (
+    .byte       font_closep - font      ; 41  29  )
+    .byte       font_asterisk - font    ; 42  2A  *
+    .byte       font_plus - font        ; 43  2B  +
+    .byte       font_comma - font       ; 44  2C  ,
+    .byte       font_dash - font        ; 45  2D  -
     .byte       font_period - font      ; 46  2E  .
-    .byte       font_QM - font          ; 47  2F  /
+    .byte       font_slash - font       ; 47  2F  /
     .byte       font_0  - font          ; 48  30  0
     .byte       font_1  - font          ; 49  31  1
     .byte       font_2  - font          ; 50  32  2
@@ -326,293 +325,232 @@ fontIndex:
 .align 256
 font:
 
-font_EX:
-    .byte       %01011110
-    .byte       0
+font_space:     .byte       %10000000
 
-font_doubleq:
-    .byte       %00000110
-    .byte       %00000000
-    .byte       %00000110
-    .byte       0
+font_EX:        .byte       %11011110
 
-    .byte       font_QM - font          ; 34  22  "
-    .byte       font_QM - font          ; 35  23  #
-    .byte       font_QM - font          ; 36  24  $
-    .byte       font_percent - font     ; 37  25  %
-    .byte       font_QM - font          ; 38  26  &
-    .byte       font_QM - font          ; 39  27  '
-    .byte       font_QM - font          ; 40  28  (
-    .byte       font_QM - font          ; 41  29  )
-    .byte       font_QM - font          ; 42  2A  *
-    .byte       font_QM - font          ; 43  2B  +
-    .byte       font_QM - font          ; 44  2C  ,
-    .byte       font_QM - font          ; 45  2D  -
+font_doubleq:   .byte       %00000110
+                .byte       %00000000
+                .byte       %10000110
 
-font_percent:
-    .byte       %00010010
-    .byte       %00001000
-    .byte       %00100100
-    .byte       0
+font_hash:      .byte       %00010100
+                .byte       %00111110
+                .byte       %00010100
+                .byte       %00111110
+                .byte       %10010100
 
-font_period:
-    .byte       %01000000
-    .byte       0
+font_dollars:   .byte       %00000100
+                .byte       %00101010
+                .byte       %01111111
+                .byte       %00101010
+                .byte       %10010000
 
-font_0:
-    .byte       %01111110
-    .byte       %01000010
-    .byte       %01111110
-    .byte       0
+font_percent:   .byte       %00010010
+                .byte       %00001000
+                .byte       %10100100
 
-font_1:
-    .byte       %01000100
-    .byte       %01111110
-    .byte       %01000000
-    .byte       0
+; &
 
-font_2:
-    .byte       %01111010
-    .byte       %01001010
-    .byte       %01001110
-    .byte       0
+font_quote:     .byte       %10000110
 
-font_3:
-    .byte       %01001010
-    .byte       %01001010
-    .byte       %01111110
-    .byte       0
+font_openp:     .byte       %00111100
+                .byte       %11000010
 
-font_4:
-    .byte       %00001110
-    .byte       %00001000
-    .byte       %01111110
-    .byte       0
+font_closep:    .byte       %01000010
+                .byte       %10111100
 
-font_5:
-    .byte       %01001110
-    .byte       %01001010
-    .byte       %01111010
-    .byte       0
+font_asterisk:  .byte       %00100100
+                .byte       %00011000
+                .byte       %01111110
+                .byte       %00011000
+                .byte       %10100100
 
-font_6:
-    .byte       %01111110
-    .byte       %01001010
-    .byte       %01111010
-    .byte       0
+font_plus:      .byte       %00001000
+                .byte       %00011100
+                .byte       %10001000
 
-font_7:
-    .byte       %00000010
-    .byte       %00000010
-    .byte       %01111110
-    .byte       0
+font_comma:     .byte       %01000000
+                .byte       %10100000
 
-font_8:
-    .byte       %01111110
-    .byte       %01001010
-    .byte       %01111110
-    .byte       0
+font_dash:      .byte       %00001000
+                .byte       %10001000
 
-font_9:
-    .byte       %01001110
-    .byte       %01001010
-    .byte       %01111110
-    .byte       0
+font_slash:     .byte       %01100000
+                .byte       %00011000
+                .byte       %10000110
 
+font_period:    .byte       %11000000
 
-font_colon:
-    .byte       %00101000
-    .byte       0
+font_0:         .byte       %01111110
+                .byte       %01000010
+                .byte       %11111110
 
-font_semicolon:
-    .byte       %01000000
-    .byte       %00101000
-    .byte       0
+font_1:         .byte       %01000100
+                .byte       %01111110
+                .byte       %11000000
 
-font_lessthan:
-    .byte       %00001000
-    .byte       %00010100
-    .byte       %00100010
-    .byte       0
+font_2:         .byte       %01111010
+                .byte       %01001010
+                .byte       %11001110
 
-font_equal:
-    .byte       %00010100
-    .byte       %00010100
-    .byte       0
+font_3:         .byte       %01001010
+                .byte       %01001010
+                .byte       %11111110
+
+font_4:         .byte       %00001110
+                .byte       %00001000
+                .byte       %11111110
+
+font_5:         .byte       %01001110
+                .byte       %01001010
+                .byte       %11111010
+
+font_6:         .byte       %01111110
+                .byte       %01001010
+                .byte       %11111010
+
+font_7:         .byte       %00000010
+                .byte       %00000010
+                .byte       %11111110
+
+font_8:         .byte       %01111110
+                .byte       %01001010
+                .byte       %11111110
+
+font_9:         .byte       %01001110
+                .byte       %01001010
+                .byte       %11111110
+
+font_colon:     .byte       %10101000
+
+font_semicolon: .byte       %01000000
+                .byte       %10101000
+
+font_lessthan:  .byte       %00001000
+                .byte       %00010100
+                .byte       %10100010
+
+font_equal:     .byte       %00010100
+                .byte       %10010100
 
 font_greaterthan:
-    .byte       %00100010
-    .byte       %00010100
-    .byte       %00001000
-    .byte       0
+                .byte       %00100010
+                .byte       %00010100
+                .byte       %10001000
 
-font_QM:
-    .byte       %00000100
-    .byte       %01010010
-    .byte       %00001100
-    .byte       0
+font_QM:        .byte       %00000100
+                .byte       %01010010
+                .byte       %10001100
 
 ; @ -- using ?
 
-font_A:
-    .byte       %01111100
-    .byte       %00010010
-    .byte       %01111100
-    .byte       0
+font_A:         .byte       %01111100
+                .byte       %00010010
+                .byte       %11111100
 
-font_B:
-    .byte       %01111110
-    .byte       %01001010
-    .byte       %01110100
-    .byte       0
+font_B:         .byte       %01111110
+                .byte       %01001010
+                .byte       %11110100
 
-font_C:
-    .byte       %00111100
-    .byte       %01000010
-    .byte       %01000010
-    .byte       0
+font_C:         .byte       %00111100
+                .byte       %01000010
+                .byte       %11000010
 
-font_D:
-    .byte       %01111110
-    .byte       %01000010
-    .byte       %00111100
-    .byte       0
+font_D:         .byte       %01111110
+                .byte       %01000010
+                .byte       %10111100
 
-font_E:
-    .byte       %01111110
-    .byte       %01001010
-    .byte       %01000010
-    .byte       0
+font_E:         .byte       %01111110
+                .byte       %01001010
+                .byte       %11000010
 
-font_F:
-    .byte       %01111110
-    .byte       %00001010
-    .byte       %00000010
-    .byte       0
+font_F:         .byte       %01111110
+                .byte       %00001010
+                .byte       %10000010
 
-font_G:
-    .byte       %00111100
-    .byte       %01000010
-    .byte       %01001010
-    .byte       %00111000
-    .byte       0
+font_G:         .byte       %00111100
+                .byte       %01000010
+                .byte       %01001010
+                .byte       %10111000
 
-font_H:
-    .byte       %01111110
-    .byte       %00001000
-    .byte       %01111110
-    .byte       0
+font_H:         .byte       %01111110
+                .byte       %00001000
+                .byte       %11111110
 
-font_I:
-    .byte       %01000010
-    .byte       %01111110
-    .byte       %01000010
-    .byte       0
+font_I:         .byte       %01000010
+                .byte       %01111110
+                .byte       %11000010
 
-font_J:
-    .byte       %00100000
-    .byte       %01000000
-    .byte       %00111110
-    .byte       0
+font_J:         .byte       %00100000
+                .byte       %01000000
+                .byte       %10111110
 
-font_K:
-    .byte       %01111110
-    .byte       %00010000
-    .byte       %01101100
-    .byte       0
+font_K:         .byte       %01111110
+                .byte       %00010000
+                .byte       %11101100
 
-font_L:
-    .byte       %01111110
-    .byte       %01000000
-    .byte       %01000000
-    .byte       0
+font_L:         .byte       %01111110
+                .byte       %01000000
+                .byte       %11000000
 
-font_M:
-    .byte       %01111110
-    .byte       %00000010
-    .byte       %00001100
-    .byte       %00000010
-    .byte       %01111110
-    .byte       0
+font_M:         .byte       %01111110
+                .byte       %00000010
+                .byte       %00001100
+                .byte       %00000010
+                .byte       %11111110
 
-font_N:
-    .byte       %01111110
-    .byte       %00000100
-    .byte       %00001000
-    .byte       %01111110
-    .byte       0
+font_N:         .byte       %01111110
+                .byte       %00000100
+                .byte       %00001000
+                .byte       %11111110
 
-font_O:
-    .byte       %00111100
-    .byte       %01000010
-    .byte       %00111100
-    .byte       0
+font_O:         .byte       %00111100
+                .byte       %01000010
+                .byte       %10111100
 
-font_P:
-    .byte       %01111110
-    .byte       %00010010
-    .byte       %00001100
-    .byte       0
+font_P:         .byte       %01111110
+                .byte       %00010010
+                .byte       %10001100
 
-font_Q:
-    .byte       %00111100
-    .byte       %01000010
-    .byte       %01100010
-    .byte       %01011100
-    .byte       0
+font_Q:         .byte       %00111100
+                .byte       %01000010
+                .byte       %01100010
+                .byte       %11011100
 
-font_R:
-    .byte       %01111110
-    .byte       %00010010
-    .byte       %01101100
-    .byte       0
+font_R:         .byte       %01111110
+                .byte       %00010010
+                .byte       %11101100
 
-font_S:
-    .byte       %01000100
-    .byte       %01001010
-    .byte       %00110010
-    .byte       0
+font_S:         .byte       %01000100
+                .byte       %01001010
+                .byte       %10110010
 
-font_T:
-    .byte       %00000010
-    .byte       %01111110
-    .byte       %00000010
-    .byte       0
+font_T:         .byte       %00000010
+                .byte       %01111110
+                .byte       %10000010
 
-font_U:
-    .byte       %00111110
-    .byte       %01000000
-    .byte       %00111110
-    .byte       0
+font_U:         .byte       %00111110
+                .byte       %01000000
+                .byte       %10111110
 
-font_V:
-    .byte       %00011110
-    .byte       %01100000
-    .byte       %00011110
-    .byte       0
+font_V:         .byte       %00011110
+                .byte       %01100000
+                .byte       %10011110
 
-font_W:
-    .byte       %00111110
-    .byte       %01000000
-    .byte       %00110000
-    .byte       %01000000
-    .byte       %00111110
-    .byte       0
+font_W:         .byte       %00111110
+                .byte       %01000000
+                .byte       %00110000
+                .byte       %01000000
+                .byte       %10111110
 
-font_X:
-    .byte       %01110110
-    .byte       %00001000
-    .byte       %01110110
-    .byte       0
+font_X:         .byte       %01110110
+                .byte       %00001000
+                .byte       %11110110
 
-font_Y:
-    .byte       %00001110
-    .byte       %01110000
-    .byte       %00001110
-    .byte       0
+font_Y:         .byte       %00001110
+                .byte       %01110000
+                .byte       %10001110
 
-font_Z:
-    .byte       %01110010
-    .byte       %01001010
-    .byte       %01000110
-    .byte       0
+font_Z:         .byte       %01110010
+                .byte       %01001010
+                .byte       %11000110

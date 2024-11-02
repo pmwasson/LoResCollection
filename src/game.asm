@@ -49,9 +49,8 @@ INPUT_BUTTON    = $80
 
 .proc main
 
-    jmp         fontDemo
     ; init
-    lda         #0
+    lda         #1
     sta         levelNumber
     lda         #$05
     sta         bg0
@@ -62,6 +61,7 @@ INPUT_BUTTON    = $80
 
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
+    bit         MIXCLR
 
 levelLoop:
     lda         #$00        ; clear low screen
@@ -69,7 +69,6 @@ levelLoop:
     jsr         clearScreen
     lda         #$20        ; inverse space
     bit         LOWSCR
-    bit         MIXCLR
 
     ldy         #0
 :
@@ -77,12 +76,13 @@ levelLoop:
     dey
     bne         :-
 
-    bit         MIXSET
     lda         #$04        ; display low screen, draw high screen
     sta         drawPage
     jsr         drawBackground
+
     jsr         loadLevel
     jsr         drawLevel
+    jsr         drawLevelNumber
 
     ; init cursor
     lda         #20
@@ -648,7 +648,7 @@ background:
     .byte   $3, $4, $4, $4, $4, $4, $4, $7
     .byte   $3, $4, $4, $4, $4, $4, $4, $7
     .byte   $8, $9, $9, $9, $9, $9, $9, $A
-    .byte   $B, $C, $C, $C, $C, $C, $C, $D
+    .byte   $B, $B, $B, $B, $B, $B, $B, $B
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -994,6 +994,70 @@ loop:
 time0:          .byte   0
 time1:          .byte   0
 index:          .byte   0
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; draw level number
+;-----------------------------------------------------------------------------
+.proc drawLevelNumber
+
+    lda         #3
+    sta         curX
+    lda         #40
+    sta         curY
+
+    jsr         inlineDrawString
+    .byte       "LEVEL:",0
+
+    lda         levelNumber
+
+    cmp         #40
+    bcc         :+
+    ldx         #'4'
+    jsr         drawChar
+    lda         levelNumber
+    sec
+    sbc         #40
+    jmp         remainder
+:
+    cmp         #30
+    bcc         :+
+    ldx         #'3'
+    jsr         drawChar
+    lda         levelNumber
+    sec
+    sbc         #30
+    jmp         remainder
+:
+    cmp         #20
+    bcc         :+
+    ldx         #'2'
+    jsr         drawChar
+    lda         levelNumber
+    sec
+    sbc         #20
+    jmp         remainder
+:
+    cmp         #10
+    bcc         :+
+    ldx         #'1'
+    jsr         drawChar
+    lda         levelNumber
+    sec
+    sbc         #10
+    jmp         remainder
+:
+    ldx         #'0'
+    jsr         drawChar
+    lda         levelNumber
+remainder:
+    clc
+    adc         #'0'
+    tax
+    jsr         drawChar
+
+    rts
 
 .endproc
 

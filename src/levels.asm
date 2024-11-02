@@ -25,7 +25,7 @@
         ;; negative     end of list
 
 levelTable:
-        .word level_1
+        .word 0         ; padding
         .word level_2
         .word level_3
         .word level_4

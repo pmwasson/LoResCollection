@@ -81,35 +81,24 @@ tileSheet:
 ; 08 - bottom left (2 bottom rows blank, align to left)
 .byte   $FF, $FF, $55, $55, $55
 .byte 	$FF, $FF, $FF, $FF, $FF
-.byte   $20, $20, $A0, $A0, $A0
+.byte   $00, $00, $00, $00, $00
 .byte   $00
 
 ; 09 - bottom  (2 bottom rows blank)
 .byte   $55, $55, $55, $55, $55
 .byte 	$FF, $FF, $FF, $FF, $FF
-.byte   $A0, $A0, $A0, $A0, $A0
+.byte   $00, $00, $00, $00, $00
 .byte   $00
 
 ; 0A - bottom right (2 bottom rows blank, right column blank)
 .byte   $55, $55, $FF, $FF, $00
 .byte 	$FF, $FF, $FF, $FF, $00
-.byte   $A0, $A0, $20, $20, $A0
+.byte   $00, $00, $00, $00, $00
 .byte   $00
 
-; 0B - text right
-.byte   $20, $20, $A0, $A0, $A0
-.byte 	$20, $20, $A0, $A0, $A0
-.byte   $20, $20, $20, $20, $20
+; 0B - blank
+.byte   $00, $00, $00, $00, $00
+.byte 	$00, $00, $00, $00, $00
+.byte   $00, $00, $00, $00, $00
 .byte   $00
 
-; 0C - text
-.byte   $A0, $A0, $A0, $A0, $A0
-.byte 	$A0, $A0, $A0, $A0, $A0
-.byte   $20, $20, $20, $20, $20
-.byte   $00
-
-; 0D - text left
-.byte   $A0, $A0, $20, $20, $A0
-.byte 	$A0, $A0, $20, $20, $A0
-.byte   $20, $20, $20, $20, $A0
-.byte   $00
