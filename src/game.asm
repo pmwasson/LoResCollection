@@ -49,6 +49,7 @@ INPUT_BUTTON    = $80
 
 .proc main
 
+    jmp         fontDemo
     ; init
     lda         #0
     sta         levelNumber
@@ -1255,6 +1256,7 @@ quitParams:
 .include "inline_print.asm"
 .include "grlib.asm"
 .include "particles.asm"
+.include "font.asm"
 
 
 ; Globals

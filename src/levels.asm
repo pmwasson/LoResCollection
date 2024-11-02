@@ -68,15 +68,15 @@ levelTable:
 
 level_1:
         .byte        0,2,5
- ;       .byte        1,5,0
- ;       .byte        1,1,1
- ;       .byte        1,2,3
- ;       .byte        1,4,3
- ;       .byte        1,3,4
- ;       .byte        1,5,4
- ;       .byte        3,1,2
- ;       .byte        3,6,2
- ;       .byte        4,3,0
+        .byte        1,5,0
+        .byte        1,1,1
+        .byte        1,2,3
+        .byte        1,4,3
+        .byte        1,3,4
+        .byte        1,5,4
+        .byte        3,1,2
+        .byte        3,6,2
+        .byte        4,3,0
         .byte        5,5,5
         .byte        $FF,0,0
 
