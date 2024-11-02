@@ -26,6 +26,7 @@
 
 levelTable:
         .word 0         ; padding
+        .word level_1
         .word level_2
         .word level_3
         .word level_4

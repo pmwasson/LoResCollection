@@ -49,6 +49,9 @@ INPUT_BUTTON    = $80
 
 .proc main
 
+    lda         #0
+    sta         joystickEnable
+
     ; init
     lda         #1
     sta         levelNumber
@@ -424,8 +427,13 @@ loop:
     tax
     lda         joystickDirection,x
     beq         :+
+    ldy         joystickEnable
+    beq         ignoreJoystick
     rts
 :
+    lda         #1
+    sta         joystickEnable  ; joystick is centered
+ignoreJoystick:
     dec         timeout
     bne         loop
     lda         #0
@@ -1327,6 +1335,7 @@ quitParams:
 ;-----------------------------------------------------------------------------
 
 ; input values
+joystickEnable:     .byte   0
 paddleX:            .byte   0
 paddleY:            .byte   0
 button0:            .byte   0
