@@ -17,51 +17,20 @@
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
 
-    lda         #0
-    sta         drawPage
-    sta         curX
-    sta         curY
+    lda         #<message
+    sta         stringPtr0
+    lda         #>message
+    sta         stringPtr1
 
-
-    jsr         inlineDrawString
-    .byte       "*+,-./",0
-
-    lda         #0
-    sta         curX
-    lda         #8
-    sta         curY
-
-    jsr         inlineDrawString
-    .byte       "0123456789",0
-
-    lda         #0
-    sta         curX
-    lda         #16
-    sta         curY
-
-    jsr         inlineDrawString
-    .byte       "LEVEL:01",0
-
-    lda         #0
-    sta         curX
-    lda         #24
-    sta         curY
-
-    jsr         inlineDrawString
-    .byte       "SCORE:9999",0
-
-    lda         #0
-    sta         curX
-    lda         #32
-    sta         curY
-
-    jsr         inlineDrawString
-    .byte       "10% <=>;",0
-
+    ;jsr         initBanner
+:
+    ;jsr         updateBanner
+    bcc         :-
     brk
 
-.endproc
+message:        .byte   "THIS IS A TEST.",0
 
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Inline draw string
@@ -135,6 +104,33 @@ loop:
     inc         done
     and         #$7f
 :
+
+    jsr         drawCharCol
+
+    inc         curX
+    lda         curX
+    cmp         #40
+    bcc         :+
+    rts                         ; exit if off screen
+:
+    lda         done
+    beq         :+
+    inc         curX            ; add space between letters
+    clc
+    rts
+:
+    inc         charIndex
+    ldx         charIndex
+    jmp         loop
+
+done:           .byte   0
+charIndex:      .byte   0
+
+.endProc
+
+
+.proc drawCharCol
+
     sta         charByte
     lda         curY
     lsr                         ; divide by 2
@@ -167,28 +163,22 @@ bitLoop:
     sta         charByte
     bne         bitLoop
 
-    inc         curX
-    lda         curX
-    cmp         #40
-    bcc         :+
-    rts                         ; exit if off screen
-:
-    lda         done
-    beq         :+
-    inc         curX            ; add space between letters
-    clc
     rts
-:
-    inc         charIndex
-    ldx         charIndex
-    jmp         loop
 
-done:           .byte   0
-row:            .byte   0
-charIndex:      .byte   0
 charByte:       .byte   0
+row:            .byte   0
 color:          .byte   $00,$0f,$f0,$ff
+
 .endProc
+
+;-----------------------------------------------------------------------------
+; Banner
+;-----------------------------------------------------------------------------
+
+.proc bannerRotate
+
+
+.endproc
 
 .align 128
 
@@ -284,11 +274,11 @@ fontIndex:
     .byte       font_X  - font          ; 88  58  X
     .byte       font_Y  - font          ; 89  59  Y
     .byte       font_Z  - font          ; 90  5A  Z
-    .byte       font_QM - font          ; 91  5B  [
-    .byte       font_QM - font          ; 92  5C  \
-    .byte       font_QM - font          ; 93  5D  ]
-    .byte       font_QM - font          ; 94  5E  ^
-    .byte       font_QM - font          ; 95  5F  _
+    .byte       font_openb - font       ; 91  5B  [
+    .byte       font_bslash - font      ; 92  5C  \
+    .byte       font_closeb - font      ; 93  5D  ]
+    .byte       font_caret - font       ; 94  5E  ^
+    .byte       font_underline - font   ; 95  5F  _
     .byte       font_QM - font          ; 96  60  `
     .byte       font_A  - font          ; 97  61  a
     .byte       font_B  - font          ; 98  62  b
@@ -316,11 +306,11 @@ fontIndex:
     .byte       font_X  - font          ; 120 78  x
     .byte       font_Y  - font          ; 121 79  y
     .byte       font_Z  - font          ; 122 7A  z
-    .byte       font_QM - font          ; 123 7B  {
-    .byte       font_QM - font          ; 124 7C  |
-    .byte       font_QM - font          ; 125 7D  }
-    .byte       font_QM - font          ; 126 7E  ~
-    .byte       font_QM - font          ; 127 7F  DEL
+    .byte       font_openb - font       ; 123 7B  {
+    .byte       font_bslash - font      ; 124 7C  |
+    .byte       font_closeb - font      ; 125 7D  }
+    .byte       font_caret - font       ; 126 7E  ~
+    .byte       font_underline - font   ; 127 7F  DEL
 
 .align 256
 font:
@@ -442,7 +432,7 @@ font_QM:        .byte       %00000100
                 .byte       %01010010
                 .byte       %10001100
 
-; @ -- using ?
+; @
 
 font_A:         .byte       %01111100
                 .byte       %00010010
@@ -554,3 +544,23 @@ font_Y:         .byte       %00001110
 font_Z:         .byte       %01110010
                 .byte       %01001010
                 .byte       %11000110
+
+font_openb:     .byte       %01111110
+                .byte       %01000010
+                .byte       %11000010
+
+font_bslash:    .byte       %00000110
+                .byte       %00011000
+                .byte       %11100010
+
+font_closeb:    .byte       %01000010
+                .byte       %01000010
+                .byte       %11111110
+
+font_caret:     .byte       %00000100
+                .byte       %00000010
+                .byte       %10000100
+
+font_underline: .byte       %01000000
+                .byte       %01000000
+                .byte       %11000000
