@@ -270,6 +270,89 @@ color:          .byte   $0e,$e0
     rts
 .endProc
 
+;-------------------
+.proc setScreenPtr
+;-------------------
+    ; calculate screen pointer
+    ldy         tempZP          ; copy of tileY
+    lda         tileX
+    clc
+    adc         lineOffset,y    ; + lineOffset
+    sta         screenPtr0
+    lda         linePage,y
+    adc         drawPage        ; previous carry should be clear
+    sta         screenPtr1
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; drawTile      - draw 5x6 tile (tileY = pixel row/2)
+;-----------------------------------------------------------------------------
+
+;-----------------
+.proc setTilePtr
+;-----------------
+    ; calculate tile pointer
+    sta         tileIdx         ; Save a copy of A
+    asl
+    asl
+    asl
+    asl                         ; multiple by 16
+    clc
+    adc         #<tileSheet
+    sta         tilePtr0
+
+    lda         #0
+    adc         #>tileSheet
+    sta         tilePtr1
+    lda         tileIdx
+    lsr
+    lsr
+    lsr
+    lsr                         ; Divide by 16
+    clc
+    adc         tilePtr1
+    sta         tilePtr1
+    rts
+.endproc
+
+;--------------
+.proc drawTile
+;--------------
+
+    jsr         setTilePtr
+
+    ; copy tileY
+    lda         tileY
+    sta         tempZP
+
+    ; 3 rows
+    ldx         #TILE_HEIGHT
+
+loopy:
+    jsr         setScreenPtr
+    ; set 5 bytes
+    ldy         #TILE_WIDTH-1
+loopx:
+    lda         (screenPtr0),y
+    lda         (tilePtr0),y
+    sta         (screenPtr0),y
+    dey
+    bpl         loopx
+
+    lda         tilePtr0
+    adc         #TILE_WIDTH
+    sta         tilePtr0
+
+    inc         tempZP      ; next line
+
+    dex
+    bne         loopy
+
+    rts
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Draw shape -- draw lores shape starting at any x,y
 ;
@@ -496,6 +579,45 @@ shapeHeight:        .byte       0
 
 .endProc
 
+;-----------------------------------------------------------------------------
+; shiftBox - shift pixels in a box to the left
+;   Parameters:
+;       shiftLeft      - first column to be updated
+;       shiftRight     - last column to copy, this column is not changed
+;       shiftTop       - top row (1 byte / 2 pixels) range 0..22
+;       shiftBottom    -                             range 1..23
+;-----------------------------------------------------------------------------
+.proc shiftBox
+
+    lda         shiftTop
+    sta         tempZP
+    lda         shiftLeft
+    sta         tileX
+
+rowLoop:
+    jsr         setScreenPtr
+    ldy         shiftLeft
+columnLoop:
+    iny
+    lda         (screenPtr0),y
+    dey
+    sta         (screenPtr0),y
+    iny
+    cpy         shiftRight
+    bne         columnLoop
+
+    inc         tempZP
+    lda         tempZP
+    cmp         shiftBottom
+    bcc         rowLoop
+    rts
+
+.endproc
+
+shiftLeft:      .byte   0
+shiftRight:     .byte   39
+shiftTop:       .byte   20
+shiftBottom:    .byte   24
 
 ;-----------------------------------------------------------------------------
 ; Lookup Tables

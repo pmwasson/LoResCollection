@@ -51,6 +51,7 @@ INPUT_BUTTON    = $80
 
     lda         #0
     sta         joystickEnable
+    sta         shiftTime
 
     ; init
     lda         #1
@@ -99,6 +100,19 @@ levelLoop:
 
 gameLoop:
     jsr         screenFlip
+
+
+    clc
+    lda         shiftTime
+    adc         inputDelay
+    sta         shiftTime
+    sec
+    sbc         #20
+    bcc         :+
+    sta         shiftTime
+    jsr         shiftBox
+:
+
 
     ; Erase
     ;---------------------------
@@ -366,7 +380,7 @@ canMoveHorizontal:
     rts
 
 
-
+shiftTime:      .byte   0
 cursorBG:       .byte   0
 curMap:         .byte   0
 inputResult:    .byte   0
@@ -380,8 +394,8 @@ inputResult:    .byte   0
 
 .proc getInput
 
-    lda         #16
-    sta         timeout         ; if no input after about 1/10 of a second
+    lda         #1
+    sta         inputDelay
 
 loop:
     ldx         #0
@@ -434,8 +448,11 @@ loop:
     lda         #1
     sta         joystickEnable  ; joystick is centered
 ignoreJoystick:
-    dec         timeout
+    inc         inputDelay
+    lda         inputDelay
+    cmp         #16+1           ; timeout
     bne         loop
+    dec         inputDelay
     lda         #0
     rts
 
@@ -1188,90 +1205,6 @@ loop2:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; drawTile      - draw 5x6 tile (tileY = pixel row/2)
-;-----------------------------------------------------------------------------
-
-;-----------------
-.proc setTilePtr
-;-----------------
-    ; calculate tile pointer
-    sta         tileIdx         ; Save a copy of A
-    asl
-    asl
-    asl
-    asl                         ; multiple by 16
-    clc
-    adc         #<tileSheet
-    sta         tilePtr0
-
-    lda         #0
-    adc         #>tileSheet
-    sta         tilePtr1
-    lda         tileIdx
-    lsr
-    lsr
-    lsr
-    lsr                         ; Divide by 16
-    clc
-    adc         tilePtr1
-    sta         tilePtr1
-    rts
-.endproc
-
-;-------------------
-.proc setScreenPtr
-;-------------------
-    ; calculate screen pointer
-    ldy         tempZP          ; copy of tileY
-    lda         tileX
-    clc
-    adc         lineOffset,y    ; + lineOffset
-    sta         screenPtr0
-    lda         linePage,y
-    adc         drawPage        ; previous carry should be clear
-    sta         screenPtr1
-    rts
-.endproc
-
-;--------------
-.proc drawTile
-;--------------
-
-    jsr         setTilePtr
-
-    ; copy tileY
-    lda         tileY
-    sta         tempZP
-
-    ; 3 rows
-    ldx         #TILE_HEIGHT
-
-loopy:
-    jsr         setScreenPtr
-    ; set 5 bytes
-    ldy         #TILE_WIDTH-1
-loopx:
-    lda         (screenPtr0),y
-    lda         (tilePtr0),y
-    sta         (screenPtr0),y
-    dey
-    bpl         loopx
-
-    lda         tilePtr0
-    adc         #TILE_WIDTH
-    sta         tilePtr0
-
-    inc         tempZP      ; next line
-
-    dex
-    bne         loopy
-
-    rts
-
-.endproc
-
-
-;-----------------------------------------------------------------------------
 ; Monitor
 ;
 ;  Exit to monitor
@@ -1340,6 +1273,7 @@ paddleX:            .byte   0
 paddleY:            .byte   0
 button0:            .byte   0
 lastKey:            .byte   0
+inputDelay:         .byte   0
 
 highlight:          .byte   0
 selected:           .byte   $ff         ; Negative = none
