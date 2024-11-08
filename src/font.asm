@@ -17,30 +17,62 @@
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
     bit         HISCR       ; display high screen (so we switch to lower)
+    lda         #0
+    sta         drawPage
+
+    ;lda         #$23
+    ;sta         bg0
+    ;lda         #$32
+    ;sta         bg1
+    ;jsr         clearScreen
+    ;lda         #$a0
+    ;jsr         clearMixedText
 
     lda         #0
-    sta         shiftTop
+    sta         curX
+    sta         curY
+    jsr         inlineDrawString
+    .byte       "DEMO:",0
+
+    lda         #4
     sta         shiftLeft
+    lda         #35
+    sta         shiftRight
+    lda         #4
+    sta         shiftTop
     lda         #8
     sta         shiftBottom
-    lda         #39
-    sta         shiftRight
 
+repeat:
     lda         #<message
     sta         stringPtr0
     lda         #>message
     sta         stringPtr1
 
 loop:
+
+    ldy         #10
+:
+    jsr         wait
+    dey
+    bne         :-
+
     jsr         screenFlip
     jsr         bannerRotateLeft
     bne         loop
+    lda         KBD
+    bpl         repeat
 
     brk
 
-message:        .byte   "THIS IS A TEST.",0
+message:        .byte   "....THIS IS A TEST.... --- 0123456789 ---       *  APPLE ESCAPE  *  BY PAUL WASSON  *  2024  *           ",0
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Inline draw string
+;-----------------------------------------------------------------------------
+
 
 ;-----------------------------------------------------------------------------
 ; Inline draw string
@@ -181,35 +213,6 @@ charByte:       .byte   0
 
 .endProc
 
-.proc drawCharSpace
-
-    lda         #4
-    sta         count
-    lda         curY
-    lsr                         ; divide by 2
-    tax
-
-    ldy         #0
-bitLoop:
-    lda         curX
-    clc
-    adc         lineOffset,x
-    sta         screenPtr0
-    lda         linePage,x
-    adc         drawPage
-    sta         screenPtr1
-    lda         #$22
-    sta         (screenPtr0),y
-    inx
-    dec         count
-    bne         bitLoop
-
-    rts
-
-count:          .byte   0
-
-.endProc
-
 ;-----------------------------------------------------------------------------
 ; Banner Rotate
 ;   assume  - shift box has already been setup
@@ -233,6 +236,7 @@ count:          .byte   0
     lda         shiftRight
     sta         curX
     lda         shiftTop
+    asl                             ; *2
     sta         curY
 
     ; get character
@@ -566,9 +570,11 @@ font_H:         .byte       %01111110
                 .byte       %00001000
                 .byte       %11111110
 
-font_I:         .byte       %01000010
-                .byte       %01111110
-                .byte       %11000010
+;font_I:         .byte       %01000010
+;                .byte       %01111110
+;                .byte       %11000010
+
+font_I:         .byte       %11111110
 
 font_J:         .byte       %00100000
                 .byte       %01000000

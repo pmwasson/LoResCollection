@@ -11,7 +11,7 @@
 ;-----------------------------------------------------------------------------
 
 .proc wait
-    ; wait at least 3 miliseconds
+    ; wait at most 3 miliseconds
     ; 231 * 13 =~ 3000
     ldx         #230
 :
@@ -584,14 +584,14 @@ shapeHeight:        .byte       0
 ;   Parameters:
 ;       shiftLeft      - first column to be updated
 ;       shiftRight     - last column to copy, this column is not changed
-;       shiftTop       - top row (1 byte / 2 pixels) range 0..22
-;       shiftBottom    -                             range 1..23
+;       shiftTop       - top row (1 byte / 2 pixels) range 0..23
+;       shiftBottom    -                             range 1..24
 ;-----------------------------------------------------------------------------
 .proc shiftBox
 
     lda         shiftTop
     sta         tempZP
-    lda         shiftLeft
+    lda         #0
     sta         tileX
 
 rowLoop:
