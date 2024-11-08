@@ -16,16 +16,26 @@
 .proc fontDemo
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
+    bit         HISCR       ; display high screen (so we switch to lower)
+
+    lda         #0
+    sta         shiftTop
+    sta         shiftLeft
+    lda         #8
+    sta         shiftBottom
+    lda         #39
+    sta         shiftRight
 
     lda         #<message
     sta         stringPtr0
     lda         #>message
     sta         stringPtr1
 
-    ;jsr         initBanner
-:
-    ;jsr         updateBanner
-    bcc         :-
+loop:
+    jsr         screenFlip
+    jsr         bannerRotateLeft
+    bne         loop
+
     brk
 
 message:        .byte   "THIS IS A TEST.",0
@@ -132,53 +142,142 @@ charIndex:      .byte   0
 .proc drawCharCol
 
     sta         charByte
+    lda         #4
+    sta         count
     lda         curY
     lsr                         ; divide by 2
-    tay
-    sty         row
+    tax                         ; row in X
 
 bitLoop:
-    ldy         row
     lda         curX
     clc
-    adc         lineOffset,y
+    adc         lineOffset,x
     sta         screenPtr0
-    lda         linePage,y
+    lda         linePage,x
     adc         drawPage
     sta         screenPtr1
 
     lda         charByte
     and         #$3             ; lower 2 bits
-    tax
+    tay
 
+    lda         fontColor,y
     ldy         #0
-    lda         color,x
     sta         (screenPtr0),y
 
-    inc         row
+    inx
 
     lda         charByte
     lsr
     lsr
     sta         charByte
+    dec         count
     bne         bitLoop
 
     rts
 
+count:          .byte   0
 charByte:       .byte   0
-row:            .byte   0
-color:          .byte   $00,$0f,$f0,$ff
+
+.endProc
+
+.proc drawCharSpace
+
+    lda         #4
+    sta         count
+    lda         curY
+    lsr                         ; divide by 2
+    tax
+
+    ldy         #0
+bitLoop:
+    lda         curX
+    clc
+    adc         lineOffset,x
+    sta         screenPtr0
+    lda         linePage,x
+    adc         drawPage
+    sta         screenPtr1
+    lda         #$22
+    sta         (screenPtr0),y
+    inx
+    dec         count
+    bne         bitLoop
+
+    rts
+
+count:          .byte   0
 
 .endProc
 
 ;-----------------------------------------------------------------------------
-; Banner
+; Banner Rotate
+;   assume  - shift box has already been setup
+;           - stringPtr0/1 is set up
+;   retun non-zero if not done, 0 if done
 ;-----------------------------------------------------------------------------
 
-.proc bannerRotate
+.proc bannerRotateLeft
 
+    jsr         shiftBox
+
+    lda         charSpace
+    beq         :+
+    lda         #0
+    sta         charSpace
+    jsr         drawCharCol
+    lda         #1                  ; 1 = not done
+    rts
+:
+    ; set coordinate
+    lda         shiftRight
+    sta         curX
+    lda         shiftTop
+    sta         curY
+
+    ; get character
+    ldy         #0
+    lda         (stringPtr0),y
+    tax
+    lda         fontIndex,x
+    clc
+    adc         charByte
+    inc         charByte
+    tax
+    lda         font,x
+    bmi         final
+    jsr         drawCharCol
+    lda         #1                  ; 1 = not done
+    rts
+
+final:
+    and         #$7f                ; remove end of char flag
+    jsr         drawCharCol
+
+    lda         #0
+    sta         charByte
+
+    inc         stringPtr0
+    bne         :+
+    inc         stringPtr1
+:
+    ldy         #0
+    lda         (stringPtr0),y
+    sta         charSpace           ; non zero = add space
+    rts                             ; 0 = done / non-zero = not done
+
+charByte:       .byte   0
+charSpace:      .byte   0
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Font Data
+;-----------------------------------------------------------------------------
+
+.align 4
+
+fontColor:      .byte   $00,$0f,$f0,$ff
 
 .align 128
 

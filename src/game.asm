@@ -49,6 +49,8 @@ INPUT_BUTTON    = $80
 
 .proc main
 
+    ;jmp         fontDemo
+
     lda         #0
     sta         joystickEnable
     sta         shiftTime
@@ -107,7 +109,7 @@ gameLoop:
     adc         inputDelay
     sta         shiftTime
     sec
-    sbc         #20
+    sbc         #16
     bcc         :+
     sta         shiftTime
     jsr         shiftBox
@@ -634,6 +636,7 @@ timeout:        .byte   0
 
     lda         #0
     sta         index
+    lda         #0
     sta         tileY
 
 loopY:
@@ -975,6 +978,8 @@ tempY:          .byte   0
 ; Winner
 ;-----------------------------------------------------------------------------
 .proc winner
+
+    jsr         resetParticles
 
     lda         #0
     sta         index
