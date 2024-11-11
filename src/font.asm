@@ -29,8 +29,8 @@
     ;jsr         clearMixedText
 
     lda         #0
-    sta         curX
-    sta         curY
+    sta         fontX
+    sta         fontY
     jsr         inlineDrawString
     .byte       "TESTING:",0
 
@@ -146,7 +146,7 @@ printExit:
 ;-----------------------------------------------------------------------------
 .proc drawChar
     ; check on screen
-    lda         curX
+    lda         fontX
     cmp         #40
     bcc         :+
     rts                         ; exit if off screen
@@ -166,15 +166,15 @@ loop:
 
     jsr         drawCharCol
 
-    inc         curX
-    lda         curX
+    inc         fontX
+    lda         fontX
     cmp         #40
     bcc         :+
     rts                         ; exit if off screen
 :
     lda         done
     beq         :+
-    inc         curX            ; add space between letters
+    inc         fontX           ; add space between letters
     clc
     rts
 :
@@ -193,12 +193,12 @@ charIndex:      .byte   0
     sta         charByte
     lda         #4
     sta         count
-    lda         curY
+    lda         fontY
     lsr                         ; divide by 2
     tax                         ; row in X
 
 bitLoop:
-    lda         curX
+    lda         fontX
     clc
     adc         lineOffset,x
     sta         screenPtr0
@@ -273,10 +273,10 @@ fontColorSet3:  .byte   $ff,    $ff,    $11,    $CC,    $55
 :
     ; set coordinate
     lda         boxRight
-    sta         curX
+    sta         fontX
     lda         boxTop
     asl                             ; *2
-    sta         curY
+    sta         fontY
 
     ; get character
     jsr         getFontChar         ; Could optimize as look for special character every time
@@ -310,9 +310,19 @@ charSpace:      .byte   0
 
 .endproc
 
+.proc bannerReset
+    lda         #0
+    sta         bannerRotateLeft::charByte
+    sta         bannerRotateLeft::charSpace
+    rts
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Font Data
 ;-----------------------------------------------------------------------------
+
+fontX:          .byte   0
+fontY:          .byte   0
 
 .align 4
 

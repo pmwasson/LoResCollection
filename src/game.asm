@@ -49,13 +49,12 @@ INPUT_BUTTON    = $80
 
 .proc main
 
-    jmp         fontDemo
+    ; init
 
     lda         #0
     sta         joystickEnable
     sta         shiftTime
 
-    ; init
     lda         #1
     sta         levelNumber
     lda         #$05
@@ -89,6 +88,8 @@ levelLoop:
     jsr         loadLevel
     jsr         drawLevel
     jsr         drawLevelNumber
+    lda         #1
+    sta         bannerActive
 
     ; init cursor
     lda         #20
@@ -103,7 +104,6 @@ levelLoop:
 gameLoop:
     jsr         screenFlip
 
-
     clc
     lda         shiftTime
     adc         inputDelay
@@ -112,7 +112,12 @@ gameLoop:
     sbc         #16
     bcc         :+
     sta         shiftTime
-    jsr         shiftBox
+    lda         bannerActive
+    beq         :+
+    jsr         bannerRotateLeft
+    bne         :+
+    lda         #0
+    sta         bannerActive        ; set to 0
 :
 
 
@@ -386,6 +391,7 @@ shiftTime:      .byte   0
 cursorBG:       .byte   0
 curMap:         .byte   0
 inputResult:    .byte   0
+bannerActive:   .byte   0
 
 .endproc
 
@@ -1032,20 +1038,18 @@ index:          .byte   0
 ;-----------------------------------------------------------------------------
 .proc drawLevelNumber
 
-    lda         #3
-    sta         curX
-    lda         #40
-    sta         curY
-
-    jsr         inlineDrawString
-    .byte       "LEVEL:",0
+    jsr         bannerReset
+    lda         #<levelString
+    sta         stringPtr0
+    lda         #>levelString
+    sta         stringPtr1
 
     lda         levelNumber
 
     cmp         #40
     bcc         :+
     ldx         #'4'
-    jsr         drawChar
+    stx         levelStringNumber
     lda         levelNumber
     sec
     sbc         #40
@@ -1054,7 +1058,7 @@ index:          .byte   0
     cmp         #30
     bcc         :+
     ldx         #'3'
-    jsr         drawChar
+    stx         levelStringNumber
     lda         levelNumber
     sec
     sbc         #30
@@ -1063,7 +1067,7 @@ index:          .byte   0
     cmp         #20
     bcc         :+
     ldx         #'2'
-    jsr         drawChar
+    stx         levelStringNumber
     lda         levelNumber
     sec
     sbc         #20
@@ -1072,25 +1076,26 @@ index:          .byte   0
     cmp         #10
     bcc         :+
     ldx         #'1'
-    jsr         drawChar
+    stx         levelStringNumber
     lda         levelNumber
     sec
     sbc         #10
     jmp         remainder
 :
     ldx         #'0'
-    jsr         drawChar
+    stx         levelStringNumber
     lda         levelNumber
 remainder:
     clc
     adc         #'0'
-    tax
-    jsr         drawChar
-
+    sta         levelStringNumber+1
     rts
 
 .endproc
 
+levelString:        .byte   "LEVEL:",2
+levelStringNumber:  .byte   "01"
+                    .byte   1,"     ",0
 ;-----------------------------------------------------------------------------
 ; draw level
 ;-----------------------------------------------------------------------------
