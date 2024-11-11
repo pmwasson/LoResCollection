@@ -32,16 +32,16 @@
     sta         curX
     sta         curY
     jsr         inlineDrawString
-    .byte       "DEMO:",0
+    .byte       "TESTING:",0
 
     lda         #4
-    sta         shiftLeft
+    sta         boxLeft
     lda         #35
-    sta         shiftRight
+    sta         boxRight
     lda         #4
-    sta         shiftTop
+    sta         boxTop
     lda         #8
-    sta         shiftBottom
+    sta         boxBottom
 
 repeat:
     lda         #<message
@@ -233,9 +233,9 @@ charByte:       .byte   0
     rts
 :
     ; set coordinate
-    lda         shiftRight
+    lda         boxRight
     sta         curX
-    lda         shiftTop
+    lda         boxTop
     asl                             ; *2
     sta         curY
 

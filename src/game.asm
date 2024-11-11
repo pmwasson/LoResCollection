@@ -49,7 +49,7 @@ INPUT_BUTTON    = $80
 
 .proc main
 
-    jmp         fontDemo
+    ;jmp         fontDemo
 
     lda         #0
     sta         joystickEnable

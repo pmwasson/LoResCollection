@@ -582,42 +582,42 @@ shapeHeight:        .byte       0
 ;-----------------------------------------------------------------------------
 ; shiftBox - shift pixels in a box to the left
 ;   Parameters:
-;       shiftLeft      - first column to be updated
-;       shiftRight     - last column to copy, this column is not changed
-;       shiftTop       - top row (1 byte / 2 pixels) range 0..23
-;       shiftBottom    -                             range 1..24
+;       boxLeft      - first column to be updated
+;       boxRight     - last column to copy, this column is not changed
+;       boxTop       - top row (1 byte / 2 pixels) range 0..23
+;       boxBottom    -                             range 1..24
 ;-----------------------------------------------------------------------------
 .proc shiftBox
 
-    lda         shiftTop
+    lda         boxTop
     sta         tempZP
     lda         #0
     sta         tileX
 
 rowLoop:
     jsr         setScreenPtr
-    ldy         shiftLeft
+    ldy         boxLeft
 columnLoop:
     iny
     lda         (screenPtr0),y
     dey
     sta         (screenPtr0),y
     iny
-    cpy         shiftRight
+    cpy         boxRight
     bne         columnLoop
 
     inc         tempZP
     lda         tempZP
-    cmp         shiftBottom
+    cmp         boxBottom
     bcc         rowLoop
     rts
 
 .endproc
 
-shiftLeft:      .byte   0
-shiftRight:     .byte   39
-shiftTop:       .byte   20
-shiftBottom:    .byte   24
+boxLeft:        .byte   0
+boxRight:       .byte   39
+boxTop:         .byte   20
+boxBottom:      .byte   24
 
 ;-----------------------------------------------------------------------------
 ; Lookup Tables
