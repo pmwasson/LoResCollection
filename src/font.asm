@@ -65,13 +65,43 @@ loop:
 
     brk
 
-message:        .byte   "....THIS IS A TEST.... --- 0123456789 ---       *  APPLE ESCAPE  *  BY PAUL WASSON  *  2024  *           ",0
+message:        .byte   1,"NO ",3,"YES ",1," ",0
 
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Inline draw string
+; Get font char
+;   Interpret special characters and return char
 ;-----------------------------------------------------------------------------
+.proc getFontChar
+    ldy         #0
+    lda         (stringPtr0),y
+    beq         done
+    cmp         #5
+    bcs         done
+    jsr         setFontColor
+    jsr         nextFontChar
+    jmp         getFontChar
+done:
+    rts
+.endproc
+
+.proc nextFontChar
+    inc         stringPtr0
+    bne         :+
+    inc         stringPtr1
+:
+    rts
+.endproc
+
+.proc getNextFontChar
+    jsr         getFontChar
+    pha
+    jsr         nextFontChar
+    pla
+    rts
+temp:           .byte   0
+.endproc
 
 
 ;-----------------------------------------------------------------------------
@@ -81,47 +111,34 @@ message:        .byte   "....THIS IS A TEST.... --- 0123456789 ---       *  APPL
 .proc inlineDrawString
     ; Pop return address to find string
     pla
-    sta     stringPtr0
+    sta         stringPtr0
     pla
-    sta     stringPtr1
-    ldy     #0
+    sta         stringPtr1
+    jsr         nextFontChar        ; +1
 
     ; Print characters until 0 (end-of-string)
 printLoop:
-    iny
-    tya
-    pha
-    lda     (stringPtr0),y
-    beq     printExit
+    jsr         getFontChar
     tax
-    jsr     drawChar
-    bcs     printAbort   ; off of screen
-    pla
-    tay
-    jmp     printLoop
+    beq         printExit
+    jsr         nextFontChar
+    jsr         drawChar
+    bcc         printLoop
+    ; off screen
 
 printAbort:
-    pla
-    tay
-:
-    iny
-    lda     (stringPtr0),y
-    bne     :-
-    pha
+    jsr         getFontChar
+    beq         printExit
+    jsr         nextFontChar
+    jmp         printAbort
 
 printExit:
-    pla                 ; clean up stack
     ; calculate return address after print string
-    clc
-    tya
-    adc     stringPtr0  ; add low-byte first
-    tax                 ; save in X
-    lda     stringPtr1  ; carry to high-byte
-    adc     #0
-    pha                 ; push return high-byte
-    txa
-    pha                 ; push return low-byte
-    rts                 ; return
+    lda         stringPtr1
+    pha
+    lda         stringPtr0
+    pha
+    rts
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -214,6 +231,28 @@ charByte:       .byte   0
 .endProc
 
 ;-----------------------------------------------------------------------------
+; Set Font Color
+;-----------------------------------------------------------------------------
+.proc setFontColor
+    tax
+    lda         fontColorSet0,x
+    sta         fontColor
+    lda         fontColorSet1,x
+    sta         fontColor+1
+    lda         fontColorSet2,x
+    sta         fontColor+2
+    lda         fontColorSet3,x
+    sta         fontColor+3
+    rts
+; Background  =         black   black   black   black   yellow
+; Foreground  =         white   white   red     green   gray
+fontColorSet0:  .byte   $00,    $00,    $00,    $00,    $DD
+fontColorSet1:  .byte   $0f,    $0f,    $01,    $0C,    $D5
+fontColorSet2:  .byte   $f0,    $f0,    $10,    $C0,    $5D
+fontColorSet3:  .byte   $ff,    $ff,    $11,    $CC,    $55
+.endproc
+
+;-----------------------------------------------------------------------------
 ; Banner Rotate
 ;   assume  - shift box has already been setup
 ;           - stringPtr0/1 is set up
@@ -240,8 +279,7 @@ charByte:       .byte   0
     sta         curY
 
     ; get character
-    ldy         #0
-    lda         (stringPtr0),y
+    jsr         getFontChar         ; Could optimize as look for special character every time
     tax
     lda         fontIndex,x
     clc
@@ -261,12 +299,9 @@ final:
     lda         #0
     sta         charByte
 
-    inc         stringPtr0
-    bne         :+
-    inc         stringPtr1
-:
-    ldy         #0
-    lda         (stringPtr0),y
+    jsr         nextFontChar
+    jsr         getFontChar
+    tax                             ; Set zero flag
     sta         charSpace           ; non zero = add space
     rts                             ; 0 = done / non-zero = not done
 
@@ -570,6 +605,7 @@ font_H:         .byte       %01111110
                 .byte       %00001000
                 .byte       %11111110
 
+; Wider I
 ;font_I:         .byte       %01000010
 ;                .byte       %01111110
 ;                .byte       %11000010
