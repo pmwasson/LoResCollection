@@ -155,7 +155,6 @@ KEY_CTRL_P      = $90
 KEY_CTRL_Q      = $91
 KEY_CTRL_R      = $92
 KEY_CTRL_S      = $93
-KEY_CTRL_T      = $94
 KEY_RIGHT       = $95       ; CTRL_U
 KEY_CTRL_V      = $96
 KEY_CTRL_W      = $97
@@ -172,6 +171,8 @@ KEY_C           = $C3
 KEY_D           = $C4
 KEY_E           = $C5
 KEY_F           = $C6
+KEY_R           = $D2
+KEY_U           = $D5
 KEY_Z           = $DA
 KEY_DEL         = $FF
 

@@ -47,6 +47,8 @@ INPUT_ACTION    = $10
 INPUT_OTHER     = $40
 INPUT_BUTTON    = $80
 
+UNDO_SIZE       = 8
+
 .proc main
 
     ; init
@@ -83,13 +85,16 @@ levelLoop:
 
     lda         #$04        ; display low screen, draw high screen
     sta         drawPage
-    jsr         drawBackground
 
     jsr         loadLevel
-    jsr         drawLevel
+
+redrawLoop:
     jsr         drawLevelNumber
     lda         #1
     sta         bannerActive
+
+    jsr         drawBackground
+    jsr         drawLevel
 
     ; init cursor
     lda         #20
@@ -190,6 +195,19 @@ skipHorizontal:
     bit         inputResult
     beq         doneOther
     lda         lastKey
+
+    cmp         #KEY_U
+    bne         :+
+    jsr         undoReplay
+    beq         doneOther
+    jmp         redrawLoop
+:
+    cmp         #KEY_R
+    bne         :+
+    jsr         undoRedo
+    beq         doneOther
+    jmp         redrawLoop
+:
     cmp         #KEY_ESC
     bne         :+
     jsr         TEXT
@@ -1208,27 +1226,122 @@ mapIndex:       .byte       0
     rts                         ; no change
 
 different:
+    ldx         undoPtr
+
+    ; store transaction
+    tya
+    sta         undoTable+0,x   ; index
+    lda         selectedPrevX
+    sta         undoTable+1,x   ; prev X
+    lda         selectedPrevY
+    sta         undoTable+2,x   ; prev Y
+    lda         levelDataX,y
+    sta         undoTable+3,x   ; next X
+    lda         levelDataY,y
+    sta         undoTable+4,x   ; next Y
 
     ; point to next entry
     clc
     lda         undoPtr
-    adc         #4
+    adc         #UNDO_SIZE
     sta         undoPtr
     tax
 
-    ; store previous location
-    tya
-    sta         undoTable+0,x   ; index
-    lda         selectedPrevX
-    sta         undoTable+1,x   ; X
-    lda         selectedPrevY
-    sta         undoTable+2,x   ; Y
-
     ; mark end of history
     lda         #$ff
-    sta         undoTable+4,x
+    sta         undoTable+0,x
     rts
 .endProc
+
+;-----------------------------------------------------------------------------
+; undoReplay
+;   return 0 if no change
+;          1 if level data updated
+;-----------------------------------------------------------------------------
+.proc undoReplay
+
+    lda         undoPtr
+    sec
+    sbc         #UNDO_SIZE
+    sta         newUndoPtr
+    tax
+
+    lda         undoTable+0,x   ; index
+    bpl         valid
+    jsr         soundBump
+    lda         #0
+    rts
+
+valid:
+    ; remove from collision map
+    lda         #MAP_EMPTY
+    sta         shapeIndex
+    lda         undoTable+0,x   ; index
+    jsr         setCollisionMap
+
+    ; update position
+    ldx         newUndoPtr
+    stx         undoPtr
+    ldy         undoTable+0,x   ; index
+    lda         undoTable+1,x   ; prev x
+    sta         levelDataX,y
+    lda         undoTable+2,x   ; prev x
+    sta         levelDataY,y
+
+    ; set from collision map
+    tya
+    sta         shapeIndex
+    jsr         setCollisionMap
+
+    lda         #1
+    rts
+
+newUndoPtr:     .byte       0
+
+.endProc
+
+;-----------------------------------------------------------------------------
+; undoRedo
+;   return 0 if no change
+;          1 if level data updated
+;-----------------------------------------------------------------------------
+.proc undoRedo
+    ldx         undoPtr
+    lda         undoTable+0,x   ; index
+    bpl         valid
+    jsr         soundBump
+    lda         #0
+    rts
+
+valid:
+    ; remove from collision map
+    lda         #MAP_EMPTY
+    sta         shapeIndex
+    lda         undoTable+0,x   ; index
+    jsr         setCollisionMap
+
+    ; update position
+    ldx         undoPtr
+    stx         undoPtr
+    ldy         undoTable+0,x   ; index
+    lda         undoTable+3,x   ; next x
+    sta         levelDataX,y
+    lda         undoTable+4,x   ; next y
+    sta         levelDataY,y
+
+    ; set from collision map
+    tya
+    sta         shapeIndex
+    jsr         setCollisionMap
+
+    clc
+    lda         undoPtr
+    adc         #UNDO_SIZE
+    sta         undoPtr
+    rts
+
+.endProc
+
 
 ;-----------------------------------------------------------------------------
 ; soundTone
