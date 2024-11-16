@@ -546,6 +546,11 @@ timeout:        .byte   0
     sta         selected
     tay
 
+    lda         levelDataX,y
+    sta         selectedPrevX
+    lda         levelDataY,y
+    sta         selectedPrevY
+
     ; set offset
     sec
     lda         curX
@@ -626,6 +631,9 @@ timeout:        .byte   0
     lda         selected
     sta         shapeIndex
     jsr         setCollisionMap
+
+    ; record movement
+    jsr         undoRecord
 
     ; unselect
     lda         #MAP_EMPTY
@@ -985,6 +993,15 @@ tempY:          .byte   0
 ;-----------------------------------------------------------------------------
 .proc winner
 
+    jsr         bannerReset
+    lda         #<winnerString
+    sta         stringPtr0
+    lda         #>winnerString
+    sta         stringPtr1
+
+    lda         #1
+    sta         bannerActive
+
     jsr         resetParticles
 
     lda         #0
@@ -1010,6 +1027,12 @@ loop:
     jsr         allocateParticle
     inc         index
     inc         index
+
+    lda         bannerActive
+    beq         :+
+    jsr         bannerRotateLeft
+    bne         :+
+    sta         bannerActive
 :
     jsr         updateParticles
     jsr         drawParticles
@@ -1030,7 +1053,8 @@ loop:
 time0:          .byte   0
 time1:          .byte   0
 index:          .byte   0
-
+bannerActive:   .byte   0
+winnerString:   .byte   "COMPLETE   ",0
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1169,6 +1193,44 @@ mapIndex:       .byte       0
 .endproc
 
 ;-----------------------------------------------------------------------------
+; undoRecord
+;-----------------------------------------------------------------------------
+.proc undoRecord
+
+    ; check if there was movement
+    ldy         selected
+    lda         levelDataX,y
+    cmp         selectedPrevX
+    bne         different
+    lda         levelDataY,y
+    cmp         selectedPrevY
+    bne         different
+    rts                         ; no change
+
+different:
+
+    ; point to next entry
+    clc
+    lda         undoPtr
+    adc         #4
+    sta         undoPtr
+    tax
+
+    ; store previous location
+    tya
+    sta         undoTable+0,x   ; index
+    lda         selectedPrevX
+    sta         undoTable+1,x   ; X
+    lda         selectedPrevY
+    sta         undoTable+2,x   ; Y
+
+    ; mark end of history
+    lda         #$ff
+    sta         undoTable+4,x
+    rts
+.endProc
+
+;-----------------------------------------------------------------------------
 ; soundTone
 ;-----------------------------------------------------------------------------
 ; A = tone
@@ -1298,6 +1360,11 @@ moveBoth:           .byte   0           ; when set, lock in horizontal or veritc
 collisionMask:      .byte   0
 shapeIndex:         .byte   0
 
+; Undo info
+undoPtr:            .byte   0
+selectedPrevX:      .byte   0
+selectedPrevY:      .byte   0
+
 .align 256
 
 ;levelData:          .res    3*20
@@ -1396,6 +1463,10 @@ random5to35:
                     .byte   6 ,  10,  6 ,  31,  13,  5 ,  20,  8
                     .byte   13,  16,  19,  27,  11,  10,  7 ,  32
                     .byte   27,  5 ,  35,  17,  23,  11,  10,  31
+
+.align 256
+
+undoTable:          .res    256, $ff
 
 ; Lookup tables
 ;-----------------------------------------------------------------------------
