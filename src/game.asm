@@ -87,6 +87,7 @@ levelLoop:
     sta         drawPage
 
     jsr         loadLevel
+    jsr         undoReset
 
 redrawLoop:
     jsr         drawLevelNumber
@@ -215,7 +216,7 @@ skipHorizontal:
 :
     cmp         #KEY_TAB
     bne         :+
-    inc         levelNumber
+    jsr         nextLevelNumber
     jmp         levelLoop
 :
     cmp         #KEY_RETURN
@@ -256,7 +257,7 @@ drawSelected:
     jsr         drawLevelShapeHighlight
     lda         winCondition
     beq         :+
-    inc         levelNumber
+    jsr         nextLevelNumber
     jsr         winner
     jmp         levelLoop
 :
@@ -1342,6 +1343,38 @@ valid:
 
 .endProc
 
+;-----------------------------------------------------------------------------
+; undoReset
+;   reset undo history
+;-----------------------------------------------------------------------------
+.proc undoReset
+    lda         #0
+    sta         undoPtr
+    clc
+loop:
+    tay
+    lda         #$ff
+    sta         undoTable,y
+    tya
+    adc         #UNDO_SIZE
+    bne         loop
+    rts
+.endproc
+
+;-----------------------------------------------------------------------------
+; next level number
+;-----------------------------------------------------------------------------
+.proc nextLevelNumber
+    lda         levelNumber
+    cmp         #LEVEL_COUNT
+    beq         reset
+    inc         levelNumber
+    rts
+reset:
+    lda         #1
+    sta         levelNumber
+    rts
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; soundTone
@@ -1579,7 +1612,7 @@ random5to35:
 
 .align 256
 
-undoTable:          .res    256, $ff
+undoTable:          .res    256
 
 ; Lookup tables
 ;-----------------------------------------------------------------------------

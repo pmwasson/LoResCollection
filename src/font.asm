@@ -314,6 +314,7 @@ charSpace:      .byte   0
     lda         #0
     sta         bannerRotateLeft::charByte
     sta         bannerRotateLeft::charSpace
+    jsr         setFontColor
     rts
 .endproc
 

@@ -24,6 +24,8 @@
         ;;
         ;; negative     end of list
 
+LEVEL_COUNT =           40
+
 levelTable:
         .word 0         ; padding
         .word level_1
