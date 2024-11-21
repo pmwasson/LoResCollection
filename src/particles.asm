@@ -504,7 +504,7 @@ particleVectorTable:
 
 .align 256
 
-particleColorTable:
+particleColorTable:         ; 15 colors
 
     .byte   $0b, $b0        ; pink
     .byte   $0b, $b0        ; pink

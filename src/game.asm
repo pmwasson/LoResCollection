@@ -57,6 +57,8 @@ UNDO_SIZE       = 8
     sta         joystickEnable
     sta         shiftTime
 
+    jsr         setParticleColors
+
     lda         #1
     sta         levelNumber
     lda         #$05
@@ -405,12 +407,39 @@ canMoveHorizontal:
     sta         moveHorizontal
     rts
 
+setParticleColors:
+    ldx         #15*2-1
+:
+    lda         winnerColors,x
+    sta         particleColorTable,x
+    dex
+    bpl         :-
+    rts
 
 shiftTime:      .byte   0
 cursorBG:       .byte   0
 curMap:         .byte   0
 inputResult:    .byte   0
 bannerActive:   .byte   0
+
+winnerColors:
+    .byte   $0e, $e0        ; aqua
+    .byte   $0e, $e0        ; aqua
+    .byte   $0d, $d0        ; yellow
+    .byte   $0e, $e0        ; aqua
+    .byte   $0e, $e0        ; aqua
+
+    .byte   $09, $90        ; orange
+    .byte   $0e, $e0        ; aqua
+    .byte   $0d, $d0        ; yellow
+    .byte   $0e, $e0        ; aqua
+    .byte   $09, $90        ; orange
+
+    .byte   $0e, $e0        ; aqua
+    .byte   $0e, $e0        ; aqua
+    .byte   $0d, $d0        ; yellow
+    .byte   $0e, $e0        ; aqua
+    .byte   $0e, $e0        ; aqua
 
 .endproc
 
@@ -1341,7 +1370,7 @@ valid:
     sta         undoPtr
     rts
 
-.endProc
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; undoReset
