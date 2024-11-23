@@ -35,13 +35,14 @@ A4              :=  $42
 ; Pointers
 tilePtr0        :=  $06
 tilePtr1        :=  $07
+maskPtr0 		:=  $fa
+maskPtr1 		:=  $fb
 screenPtr0      :=  $1b
 screenPtr1      :=  $1c
 mapPtr0         :=  $ce
 mapPtr1         :=  $cf
 stringPtr0      :=  $fe
 stringPtr1      :=  $ff
-
 
 ; Indexes
 tileIdx         :=  $08
@@ -64,14 +65,7 @@ tempZP 			:=  $09
 ; following are available to use
 ;               :=  $19
 ;               :=  $1a
-;               :=  $ce
-;               :=  $cf
 ;               :=  $ec
-;               :=  $ed
-;               :=  $ee
-;               :=  $ef
-;               :=  $fa
-;               :=  $fb
 ;               :=  $fc
 ;               :=  $fd
 

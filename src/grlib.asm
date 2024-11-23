@@ -270,9 +270,12 @@ color:          .byte   $0e,$e0
     rts
 .endProc
 
-;-------------------
+;-----------------------------------------------------------------------------
+; Set Screen Ptr
+;   uses tempZP for Y (byte) and tileX for X.
+;   doesn't change X register
+;-----------------------------------------------------------------------------
 .proc setScreenPtr
-;-------------------
     ; calculate screen pointer
     ldy         tempZP          ; copy of tileY
     lda         tileX
@@ -579,6 +582,91 @@ shapeHeight:        .byte       0
 
 .endProc
 
+;-----------------------------------------------------------------------------
+; Draw Masked shape -- draw lores masked shape starting at any x,y
+;
+;  tileX, tileY and tilePtr and maskPtr must be set before calling
+;
+;  tileX, tileY are pixel coordinates.
+;
+;  Each shape and mask is defined twice: once starting at at even row and once starting
+;  at an odd row.  Mask data doesn't include 3-byte header.
+;  Assumes mask handles even/odd rows.
+;
+;  Draw lores shape defined by
+;  0         - width (pixels)
+;  1         - height (pixels) -- must be / 2
+;  2         - offset to shifted data in bytes
+;  3+        - data bytes starting on even row
+;  3+offset+ - data bytes starting on odd row
+;
+;  Total size must be <= 256 bytes and all data on same page
+;-----------------------------------------------------------------------------
+
+.proc drawMaskedShape
+
+    ldy         #0
+    lda         (tilePtr0),y
+    sta         shapeWidth
+    inc         tilePtr0
+
+    lda         (tilePtr0),y
+    sta         shapeHeight
+    lsr
+    sta         shapeHeightBytes
+    inc         tilePtr0
+
+    lda         (tilePtr0),y
+    sta         shapeOffset
+    inc         tilePtr0
+
+    ; check for odd
+    lda         tileY
+    lsr
+    sta         tempZP
+    bcc         :+              ; no carry = even
+
+    ; update pointer to odd data
+    clc
+    lda         tilePtr0
+    adc         shapeOffset
+    sta         tilePtr0
+    lda         maskPtr0
+    adc         shapeOffset
+    sta         maskPtr0
+:
+
+    ldx         shapeHeightBytes
+loopY:
+    jsr         setScreenPtr    ; assume carry cleared after call
+    ldy         shapeWidth
+    dey
+
+loopX:
+    lda         (screenPtr0),y
+    and         (maskPtr0),y
+    ora         (tilePtr0),y
+    sta         (screenPtr0),y
+    dey
+    bpl         loopX
+
+    lda         tilePtr0
+    adc         shapeWidth
+    sta         tilePtr0
+
+    inc         tempZP          ; next line
+
+    dex
+    bne         loopY
+
+    rts                         ; Done
+
+shapeWidth:         .byte       0
+shapeHeight:        .byte       0
+shapeHeightBytes:   .byte       0
+shapeOffset:        .byte       0
+
+.endProc
 ;-----------------------------------------------------------------------------
 ; shiftBox - shift pixels in a box to the left
 ;   Parameters:
