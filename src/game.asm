@@ -51,6 +51,9 @@ UNDO_SIZE       = 8
 
 .proc main
 
+    jsr         drawMap
+    brk
+
     ; init
 
     lda         #0
