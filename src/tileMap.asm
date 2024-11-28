@@ -51,37 +51,46 @@
     sta         initialShift
 
 
-bufferLoop:
+
 
     ldy         mapScreenLeft
     sty         rowBufferIndex
 
-loadBufferLoop:
+tileBufferLoop1:
     ldy         mapIndex
     ldx         map,y
     ldy         rowBufferIndex
+tileByteLoop:
     lda         mapTiles,x
-    sta         rowBuffer,y
+    sta         tileBuffer,y
     inx
     iny
-    lda         mapTiles,x
-    sta         rowBuffer,y
-    inx
-    iny
-    lda         mapTiles,x
-    sta         rowBuffer,y
-    inx
-    iny
-    lda         mapTiles,x
-    sta         rowBuffer,y
+    txa
+    and         #$3
+    bne         tileByteLoop
 
-    iny
     sty         rowBufferIndex
     inc         mapIndex
     cpy         mapScreenRight
-    bne         loadBufferLoop
+    bcc         tileBufferLoop1
 
     ;----------------
+
+
+    ldy         mapScreenLeft
+tileBufferLoop2:
+    lda         tileBuffer,y
+    ora         #$40            ; shift by 4
+    tax
+    lda         nibbleShiftTable,x
+    ora         rowBuffer,y
+    sta         rowBuffer,y
+    iny
+    cpy         mapScreenRight
+    bcc         tileBufferLoop2
+
+    ;----------------
+
 
 rowLoop:
     ldy         screenRow
@@ -138,8 +147,8 @@ screenCol:          .byte   0
 
 rowBufferIndex:     .byte   0
 colorTable:         .byte   $ee, $e1, $1e, $11
-tileBuffer:         .res    40
-rowBuffer:          .res    40
+tileBuffer:         .res    44                  ; include some padding
+rowBuffer:          .res    44
 
 .endproc
 
@@ -212,7 +221,7 @@ mapTiles:
 
 ; 16x16 for testing
 map:
-    .byte   $04,$08,$0C,$10,$14,$00,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+    .byte   $08,$08,$0C,$10,$14,$00,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
     .byte   $04,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$0C,$04
     .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
     .byte   $04,$00,$00,$14,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
