@@ -51,7 +51,7 @@ UNDO_SIZE       = 8
 
 .proc main
 
-    jsr         drawMap
+    jsr         drawTileMap
     brk
 
     ; init
@@ -1668,4 +1668,5 @@ translateY:
 .include "tiles.asm"
 .include "shapes.asm"
 .include "levels.asm"
+.include "tileMap.asm"
 
