@@ -4,16 +4,24 @@
 ; Low Res tile map
 ;-----------------------------------------------------------------------------
 
+; Reuse zero page pointers
+evenPtr0        :=  screenPtr0
+evenPtr1        :=  screenPtr1
+oddPtr0         :=  maskPtr0
+oddPtr1         :=  maskPtr1
+tileShift       :=  tempZP
+
 .proc drawTileMap
 
-    ;--------
+    ;----------------------------------
+    ; Init demo
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
     lda         #0
     sta         drawPage
-    ;--------
 
-    ; setup
+    ;----------------------------------
+    ; Setup
 
     lda         worldX
     lsr
@@ -32,7 +40,10 @@
 
     clc
     adc         mapCol
-    sta         mapIndex
+    sta         mapPtr0
+
+    lda         #>map
+    sta         mapPtr1
 
     lda         worldX
     and         #%11
@@ -48,87 +59,128 @@
     and         #$f
     tax
     lda         nibbleShiftIndex,x
-    sta         initialShift
-
-
-
+    sta         tileShift
 
     ldy         mapScreenLeft
-    sty         rowBufferIndex
+    sty         tileBufferIndex
+
+    ;----------------------------------------
+    ; Copy first row of map tiles to buffer
+
+    ; initial horizontal offset
+    ldy         #0
+    sty         mapIndex
+    lda         (mapPtr0),y
+    clc
+    adc         mapOffsetX
+    jmp         :+
 
 tileBufferLoop1:
     ldy         mapIndex
-    ldx         map,y
-    ldy         rowBufferIndex
-tileByteLoop:
-    lda         mapTiles,x
+    lda         (mapPtr0),y         ; read map
+:
+    sta         tileIdx
+    ldy         tileBufferIndex
+tileByteLoop1:
+    ldx         tileIdx
+    lda         mapTiles,x          ; read tile slice
+    ora         tileShift
+    tax
+    lda         nibbleShiftTable,x  ; shift by vertical offset
     sta         tileBuffer,y
-    inx
     iny
-    txa
+    inc         tileIdx
+    lda         tileIdx
     and         #$3
-    bne         tileByteLoop
-
-    sty         rowBufferIndex
+    bne         tileByteLoop1       ; repeat for remaining slices
+    sty         tileBufferIndex
     inc         mapIndex
     cpy         mapScreenRight
-    bcc         tileBufferLoop1
+    bcc         tileBufferLoop1     ; repeat for remaining tiles
 
-    ;----------------
-
+    ;----------------------------------------
+    ; Copy second row of map tiles to buffer
 
     ldy         mapScreenLeft
+    sty         tileBufferIndex
+
+    lda         mapPtr0
+    clc
+    adc         #MAP_WIDTH
+    sta         mapPtr0
+
+    lda         tileShift
+    eor         #$40                ; shift +4 from previous
+    sta         tileShift
+
+    ; initial horizontal offset
+    ldy         #0
+    sty         mapIndex
+    lda         (mapPtr0),y
+    clc
+    adc         mapOffsetX
+    jmp         :+
+
 tileBufferLoop2:
-    lda         tileBuffer,y
-    ora         #$40            ; shift by 4
+    ldy         mapIndex
+    lda         (mapPtr0),y         ; read map
+:
+    sta         tileIdx
+    ldy         tileBufferIndex
+tileByteLoop2:
+    ldx         tileIdx
+    lda         mapTiles,x          ; read tile slice
+    ora         tileShift
     tax
-    lda         nibbleShiftTable,x
-    ora         rowBuffer,y
-    sta         rowBuffer,y
+    lda         nibbleShiftTable,x  ; shift by vertical offset
+    ora         tileBuffer,y
+    sta         tileBuffer,y
     iny
+    inc         tileIdx
+    lda         tileIdx
+    and         #$3
+    bne         tileByteLoop2       ; repeat for remaining slices
+    sty         tileBufferIndex
+    inc         mapIndex
     cpy         mapScreenRight
-    bcc         tileBufferLoop2
+    bcc         tileBufferLoop2     ; repeat for remaining tiles
 
-    ;----------------
+    ;----------------------------------
+    ; Set screen pointers for
+    ; 2 aligned rows
 
-
-rowLoop:
     ldy         screenRow
     lda         lineOffset,y
-    sta         screenPtr0
+    sta         evenPtr0
+    ora         #$80
+    sta         oddPtr0
     lda         linePage,y
     clc
     adc         drawPage
-    sta         screenPtr1
+    sta         evenPtr1
+    sta         oddPtr1
+
+    ;----------------------------------
+    ; Copy buffer to screen
 
     ldy         mapScreenLeft
-colLoop:
-    lda         rowBuffer,y
-    and         #3              ; 2-bit index
-    tax
-    lda         colorTable,x
-    sta         (screenPtr0),y
-    lda         rowBuffer,y
-    lsr                         ; shift by 2 for next row
-    lsr
-    sta         rowBuffer,y
+    ; write 2 rows at a time
+doubleRow:
+    ldx         tileBuffer,y
+    lda         evenColor,x
+    sta         (evenPtr0),y
+    lda         oddColor,x
+    sta         (oddPtr0),y
     iny
     cpy         mapScreenRight
-    bne         colLoop
-
-    inc         screenRow
-    lda         screenRow
-    and         #$3             ; repeat for a total of 4 rows
-    bne         rowLoop
+    bne         doubleRow
 
     brk
 
 
 
-.align  128
-
 worldX:             .byte   0
-worldY:             .byte   0
+worldY:             .byte   2
 mapScreenTop:       .byte   0
 mapScreenBottom:    .byte   20
 mapScreenLeft:      .byte   0
@@ -140,35 +192,36 @@ mapIndex:           .byte   0
 
 mapOffsetX:         .byte   0
 mapOffsetY:         .byte   0
-initialShift:       .byte   0
 
 screenRow:          .byte   0
 screenCol:          .byte   0
 
-rowBufferIndex:     .byte   0
-colorTable:         .byte   $ee, $e1, $1e, $11
-tileBuffer:         .res    44                  ; include some padding
-rowBuffer:          .res    44
+tileBufferIndex:    .byte   0
 
 .endproc
 
 .align 256
+; 128 bytes
 nibbleShiftTable:
-        .byte   $00, $01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E, $0F      ; shift 0
-        .byte   $00, $02, $04, $06, $08, $0A, $0C, $0E, $10, $12, $14, $16, $18, $1A, $1C, $1E      ; shift 1
-        .byte   $00, $04, $08, $0C, $10, $14, $18, $1C, $20, $24, $28, $2C, $30, $34, $38, $3C      ; shift 2
-        .byte   $00, $08, $10, $18, $20, $28, $30, $38, $40, $48, $50, $58, $60, $68, $70, $78      ; shift 3
-        .byte   $00, $10, $20, $30, $40, $50, $60, $70, $80, $90, $A0, $B0, $C0, $D0, $E0, $F0      ; shift 4
-        .byte   $00, $20, $40, $60, $80, $A0, $C0, $E0, $00, $20, $40, $60, $80, $A0, $C0, $E0      ; shift 5
-        .byte   $00, $40, $80, $C0, $00, $40, $80, $C0, $00, $40, $80, $C0, $00, $40, $80, $C0      ; shift 6
-        .byte   $00, $80, $00, $80, $00, $80, $00, $80, $00, $80, $00, $80, $00, $80, $00, $80      ; shift 7
-        .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00      ; shift 8 / -4
-        .byte   $00, $00, $00, $00, $00, $00, $00, $00, $01, $01, $01, $01, $01, $01, $01, $01      ; shift -3
-        .byte   $00, $00, $00, $00, $01, $01, $01, $01, $02, $02, $02, $02, $03, $03, $03, $03      ; shift -2
-        .byte   $00, $00, $01, $01, $02, $02, $03, $03, $04, $04, $05, $05, $06, $06, $07, $07      ; shift -1
+        .byte   $0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $A, $B, $C, $D, $E, $F      ; shift 0
+        .byte   $0, $2, $4, $6, $8, $A, $C, $E, $0, $2, $4, $6, $8, $A, $C, $E      ; shift 1
+        .byte   $0, $4, $8, $C, $0, $4, $8, $C, $0, $4, $8, $C, $0, $4, $8, $C      ; shift 2
+        .byte   $0, $8, $0, $8, $0, $8, $0, $8, $0, $8, $0, $8, $0, $8, $0, $8      ; shift 3
+        .byte   $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0, $0      ; shift -4.. or +4...
+        .byte   $0, $0, $0, $0, $0, $0, $0, $0, $1, $1, $1, $1, $1, $1, $1, $1      ; shift -3
+        .byte   $0, $0, $0, $0, $1, $1, $1, $1, $2, $2, $2, $2, $3, $3, $3, $3      ; shift -2
+        .byte   $0, $0, $1, $1, $2, $2, $3, $3, $4, $4, $5, $5, $6, $6, $7, $7      ; shift -1
 
+; 16 bytes
 nibbleShiftIndex:
-        .byte   $00, $10, $20, $30, $40, $50, $60, $70, $80, $80, $80, $80, $80, $90, $A0, $B0
+        .byte   $00, $10, $20, $30, $40, $40, $40, $40, $40, $40, $40, $40, $40, $50, $60, $70
+
+; 32 bytes
+evenColor:          .byte   $ee, $e1, $1e, $11, $ee, $e1, $1e, $11, $ee, $e1, $1e, $11, $ee, $e1, $1e, $11
+oddColor:           .byte   $ee, $ee, $ee, $ee, $e1, $e1, $e1, $e1, $1e, $1e, $1e, $1e, $11, $11, $11, $11
+
+; 44 bytes
+tileBuffer:         .res    44                  ; include some padding
 
 .align 256
 
@@ -220,8 +273,10 @@ mapTiles:
 .align 256
 
 ; 16x16 for testing
+MAP_WIDTH = 16
 map:
-    .byte   $08,$08,$0C,$10,$14,$00,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+;    .byte   $08,$08,$0C,$10,$14,$00,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+    .byte   $04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
     .byte   $04,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$0C,$04
     .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
     .byte   $04,$00,$00,$14,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
