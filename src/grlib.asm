@@ -100,7 +100,7 @@ clear1:
     sta         $0B50,x
     sta         $0BD0,x
     dex
-    bpl         clear0
+    bpl         clear1
     rts
 
 clear0:

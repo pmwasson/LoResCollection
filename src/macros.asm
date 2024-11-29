@@ -45,3 +45,7 @@
         .byte   b
         .endrep
 .endmacro
+
+.macro  base4Byte db3,db2,db1,db0
+        .byte   (db3*64+db2*16+db1*4+db0)
+.endmacro

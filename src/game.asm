@@ -51,7 +51,7 @@ UNDO_SIZE       = 8
 
 .proc main
 
-    jsr         drawTileMap
+    jsr         mapDemo
     brk
 
     ; init
