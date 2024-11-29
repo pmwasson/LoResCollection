@@ -59,11 +59,11 @@ bg2 			:=  $ef
 
 ; Temp
 tempZP 			:=  $09
+temp2ZP 		:=  $19
 
 
 
 ; following are available to use
-;               :=  $19
 ;               :=  $1a
 ;               :=  $ec
 ;               :=  $fc
