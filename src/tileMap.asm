@@ -21,6 +21,7 @@ MAP_SCREEN_BOTTOM   =  22       ; Must be /2
 
     ;----------------------------------
     ; Init demo
+    ;----------------------------------
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
     sta         MIXCLR
@@ -42,7 +43,13 @@ MAP_SCREEN_BOTTOM   =  22       ; Must be /2
     lda         #$00
     jsr         clearMixedText
 
+    ;----------------------------------
+    ; Main Loop
+    ;----------------------------------
 loop:
+
+    ; Flip page
+    ;-----------
     lda         PAGE2           ; bit 7 = page2 displayed
     bmi         switchTo1
 
@@ -50,16 +57,30 @@ loop:
     bit         HISCR           ; display high screen
     lda         #$00            ; update low screen
     sta         drawPage
-    beq         doDraw
+    beq         :+
 
 switchTo1:
     bit         LOWSCR          ; display low screen
     lda         #$04            ; update high screen
     sta         drawPage
+:
 
-doDraw:
+    ; Update
+    ;---------------
+
+    jsr         updateFuel
+
+    ; Draw screen
+    ;---------------
     jsr         drawTileMap
+    jsr         drawPlayer
+    jsr         drawFuelGauge
 
+
+
+
+    ; Get input
+    ;---------------
     lda         KBD
     bpl         loop
 
@@ -287,6 +308,179 @@ tileBufferIndex:    .byte   0
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Draw Player
+;   Uses hardcoded fixed locations for faster render
+;-----------------------------------------------------------------------------
+
+.proc drawPlayer
+
+PLAYER_XOFFSET  = 16
+PLAYER_ROW0_0   = $7A8 + PLAYER_XOFFSET     ; 15 (30)
+PLAYER_ROW1_0   = $450 + PLAYER_XOFFSET     ; 16 (32)
+PLAYER_ROW2_0   = $4D0 + PLAYER_XOFFSET     ; 17 (34)
+PLAYER_ROW0_1   = $400 + PLAYER_ROW0_0
+PLAYER_ROW1_1   = $400 + PLAYER_ROW1_0
+PLAYER_ROW2_1   = $400 + PLAYER_ROW2_0
+PLAYER_COLOR0   = $FF
+PLAYER_COLOR1   = $F5
+
+    lda         drawPage
+    bne         draw1
+
+    ;   ##
+    ;   ##
+    ;  #--#
+    ;  ####
+    ; #    #
+    ; #    #
+
+draw0:
+    lda         #PLAYER_COLOR0
+    sta         PLAYER_ROW0_0+2
+    sta         PLAYER_ROW0_0+3
+    sta         PLAYER_ROW1_0+1
+    sta         PLAYER_ROW1_0+4
+    sta         PLAYER_ROW2_0+0
+    sta         PLAYER_ROW2_0+5
+    lda         #PLAYER_COLOR1
+    sta         PLAYER_ROW1_0+2
+    sta         PLAYER_ROW1_0+3
+    rts
+
+draw1:
+    lda         #PLAYER_COLOR0
+    sta         PLAYER_ROW0_1+2
+    sta         PLAYER_ROW0_1+3
+    sta         PLAYER_ROW1_1+1
+    sta         PLAYER_ROW1_1+4
+    sta         PLAYER_ROW2_1+0
+    sta         PLAYER_ROW2_1+5
+    lda         #PLAYER_COLOR1
+    sta         PLAYER_ROW1_1+2
+    sta         PLAYER_ROW1_1+3
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Update Fuel
+;-----------------------------------------------------------------------------
+
+FUEL_COLOR_EMPTY        = $00
+FUEL_COLOR_GOOD         = $44
+FUEL_COLOR_WARN         = $DD
+FUEL_COLOR_LOW          = $99
+FUEL_MAX_CONSUMPTION    = 15
+
+FUEL_LEVEL_MAX          = 39
+
+.proc updateFuel
+
+    lda         BUTTON0
+    bpl         :+
+    lda         fuelLevel
+    cmp         #FUEL_LEVEL_MAX
+    bcs         :+
+    inc         fuelLevel
+    ldx         fuelLevel
+    jmp         updateColors
+:
+    inc         consumption
+    lda         consumption
+    cmp         #FUEL_MAX_CONSUMPTION
+    bcs         decreaseFuel
+    rts
+
+decreaseFuel:
+    lda         #0
+    sta         consumption
+    ldx         fuelLevel
+    bne         :+
+    rts                                 ; already empty
+:
+    lda         #FUEL_COLOR_EMPTY
+    sta         fuelColor,x
+    dex
+    bne         :+
+    rts                                 ; hit empty
+:
+    stx         fuelLevel
+updateColors:
+    lda         fuelStatusColor,x
+fuelLoop:
+    sta         fuelColor,x
+    dex
+    bne         fuelLoop
+    rts
+
+fuelLevel:          .byte       0
+consumption:        .byte       0
+
+; 40 values
+fuelStatusColor:
+    .byte       FUEL_COLOR_LOW,  FUEL_COLOR_LOW,  FUEL_COLOR_LOW,  FUEL_COLOR_LOW,  FUEL_COLOR_LOW,  FUEL_COLOR_LOW,  FUEL_COLOR_LOW
+    .byte       FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN, FUEL_COLOR_WARN
+    .byte       FUEL_COLOR_WARN, FUEL_COLOR_WARN
+    .byte       FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD
+    .byte       FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD
+    .byte       FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD, FUEL_COLOR_GOOD
+
+.endProc
+
+;-----------------------------------------------------------------------------
+; Draw Fuel Gauge
+;   Uses hardcoded fixed locations for faster render
+;-----------------------------------------------------------------------------
+
+.proc drawFuelGauge
+
+FUEL_XLEFT      = 1
+FUEL_XRIGHT     = 39    ; increment by 2
+FUEL_ROW0_0     = $400                      ; 0 (0)
+FUEL_ROW1_0     = $480                      ; 1 (2)
+FUEL_ROW2_0     = $500                      ; 2 (4)
+FUEL_ROW0_1     = $400 + FUEL_ROW0_0
+FUEL_ROW1_1     = $400 + FUEL_ROW1_0
+FUEL_ROW2_1     = $400 + FUEL_ROW2_0
+
+    ldx         #FUEL_XLEFT
+    lda         drawPage
+    bne         draw1
+
+draw0:
+    lda         fuelColor,x
+    sta         FUEL_ROW1_0,x
+    ;and         #$F0
+    sta         FUEL_ROW0_0,x
+    lda         fuelColor,x
+    ;and         #$0F
+    sta         FUEL_ROW2_0,x
+    inx
+    inx
+    cpx         #FUEL_XRIGHT
+    bne         draw0
+    rts
+
+draw1:
+    lda         fuelColor,x
+    sta         FUEL_ROW1_1,x
+    ;and         #$F0
+    sta         FUEL_ROW0_1,x
+    lda         fuelColor,x
+    ;and         #$0F
+    sta         FUEL_ROW2_1,x
+    inx
+    inx
+    cpx         #FUEL_XRIGHT
+    bne         draw1
+    rts
+
+.endProc
+
+; define for width of screen (40), but only read relevant ones
+fuelColor:      .res    40
+
+;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
 
@@ -330,68 +524,145 @@ mapTiles:
         ;        1000
         ;        1010
 
-; 0
+; 00 - empty
         .byte   %0000
         .byte   %0000
         .byte   %0000
         .byte   %0000
 
-; 1
+; 04 - solid
         .byte   %1111
         .byte   %1111
         .byte   %1111
         .byte   %1111
 
-; 2 - nw
+; 08 - se
         .byte   %1111
         .byte   %0111
         .byte   %0011
         .byte   %0001
 
-; 3 - ne
+; 0C - sw
         .byte   %0001
         .byte   %0011
         .byte   %0111
         .byte   %1111
 
-; 4 - sw
+; 10 - ne
         .byte   %1111
         .byte   %1110
         .byte   %1100
         .byte   %1000
 
-; 5 - se
+; 14 - nw
         .byte   %1000
         .byte   %1100
         .byte   %1110
         .byte   %1111
 
-; 6 - dot
+; 18 - dot
         .byte   %0110
-        .byte   %1001
-        .byte   %1001
+        .byte   %1111
+        .byte   %1111
         .byte   %0110
 
+; 1c - rough floor 1
+        .byte   %1000
+        .byte   %1110
+        .byte   %0000
+        .byte   %1100
+
+; 20 - rough floor 2
+        .byte   %1000
+        .byte   %1100
+        .byte   %1110
+        .byte   %1000
+
+; 24 - rough floor 3
+        .byte   %0000
+        .byte   %1000
+        .byte   %0000
+        .byte   %1000
+
+; 28 - steep rise 1 left
+        .byte   %1100
+        .byte   %1111
+        .byte   %1111
+        .byte   %1111
+
+; 2c - steep rise 2 left
+        .byte   %0000
+        .byte   %0000
+        .byte   %1100
+        .byte   %1111
+
+; 30 - steep rise 1 right
+        .byte   %1111
+        .byte   %1111
+        .byte   %1111
+        .byte   %1100
+
+; 34 - steep rise 2 right
+        .byte   %1111
+        .byte   %1100
+        .byte   %0000
+        .byte   %0000
+
+; 38 - rough ceiling 1
+        .byte   %0001
+        .byte   %1111
+        .byte   %0011
+        .byte   %0001
+
+; 3c - rough ceiling 2
+        .byte   %0000
+        .byte   %0001
+        .byte   %0011
+        .byte   %0001
+
+; 40 - rough ceiling 3
+        .byte   %0011
+        .byte   %0000
+        .byte   %0111
+        .byte   %0001
 
 .align 256
 
 ; 16x16 for testing
 MAP_WIDTH = 16
-map:
 
-    .byte   $04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
-    .byte   $04,$08,$00,$0C,$08,$00,$0C,$08,$00,$00,$00,$00,$00,$00,$0C,$04
-    .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$10,$00,$14,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$08,$00,$0C,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$10,$00,$00,$00,$00,$18,$00,$18,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$00,$00,$00,$18,$00,$18,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$00,$18,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$18,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$18,$00,$00,$04
-    .byte   $04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$04
-    .byte   $04,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$14,$04
-    .byte   $04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+X__ = $00
+XXX = $04
+XSE = $08
+XSW = $0C
+XNE = $10
+XNW = $14
+XOO = $18
+XF1 = $1C
+XF2 = $20
+XF3 = $24
+XL1 = $28
+XL2 = $2C
+XR1 = $30
+XR2 = $34
+XC1 = $38
+XC2 = $3C
+XC3 = $40
+
+map:
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,XSW,XSE,X__,XSW,XSE,XC1,XC2,XC3,XC2,XSW,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XNE,X__,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XSE,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX
+    .byte   XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX
+    .byte   XXX,XXX,XR1,X__,X__,X__,XF1,XF2,XF1,XNE,XNW,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX

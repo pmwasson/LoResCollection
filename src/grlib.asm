@@ -979,54 +979,54 @@ patternTable5:  .byte   $88,$58,$58,$58,$00         ; gray brick
 patternTable6:  .byte   $26,$62,$26,$62,$00         ; blue brick
 
 lineOffset:
-    .byte   <$0400
-    .byte   <$0480
-    .byte   <$0500
-    .byte   <$0580
-    .byte   <$0600
-    .byte   <$0680
-    .byte   <$0700
-    .byte   <$0780
-    .byte   <$0428
-    .byte   <$04A8
-    .byte   <$0528
-    .byte   <$05A8
-    .byte   <$0628
-    .byte   <$06A8
-    .byte   <$0728
-    .byte   <$07A8
-    .byte   <$0450
-    .byte   <$04D0
-    .byte   <$0550
-    .byte   <$05D0
-    .byte   <$0650
-    .byte   <$06D0
-    .byte   <$0750
-    .byte   <$07D0
+    .byte   <$0400      ; 0
+    .byte   <$0480      ; 1
+    .byte   <$0500      ; 2
+    .byte   <$0580      ; 3
+    .byte   <$0600      ; 4
+    .byte   <$0680      ; 5
+    .byte   <$0700      ; 6
+    .byte   <$0780      ; 7
+    .byte   <$0428      ; 8
+    .byte   <$04A8      ; 9
+    .byte   <$0528      ; 10
+    .byte   <$05A8      ; 11
+    .byte   <$0628      ; 12
+    .byte   <$06A8      ; 13
+    .byte   <$0728      ; 14
+    .byte   <$07A8      ; 15
+    .byte   <$0450      ; 16
+    .byte   <$04D0      ; 17
+    .byte   <$0550      ; 18
+    .byte   <$05D0      ; 19
+    .byte   <$0650      ; 20
+    .byte   <$06D0      ; 21
+    .byte   <$0750      ; 22
+    .byte   <$07D0      ; 23
 
 linePage:
-    .byte   >$0400
-    .byte   >$0480
-    .byte   >$0500
-    .byte   >$0580
-    .byte   >$0600
-    .byte   >$0680
-    .byte   >$0700
-    .byte   >$0780
-    .byte   >$0428
-    .byte   >$04A8
-    .byte   >$0528
-    .byte   >$05A8
-    .byte   >$0628
-    .byte   >$06A8
-    .byte   >$0728
-    .byte   >$07A8
-    .byte   >$0450
-    .byte   >$04D0
-    .byte   >$0550
-    .byte   >$05D0
-    .byte   >$0650
-    .byte   >$06D0
-    .byte   >$0750
-    .byte   >$07D0
+    .byte   >$0400      ; 0
+    .byte   >$0480      ; 1
+    .byte   >$0500      ; 2
+    .byte   >$0580      ; 3
+    .byte   >$0600      ; 4
+    .byte   >$0680      ; 5
+    .byte   >$0700      ; 6
+    .byte   >$0780      ; 7
+    .byte   >$0428      ; 8
+    .byte   >$04A8      ; 9
+    .byte   >$0528      ; 10
+    .byte   >$05A8      ; 11
+    .byte   >$0628      ; 12
+    .byte   >$06A8      ; 13
+    .byte   >$0728      ; 14
+    .byte   >$07A8      ; 15
+    .byte   >$0450      ; 16
+    .byte   >$04D0      ; 17
+    .byte   >$0550      ; 18
+    .byte   >$05D0      ; 19
+    .byte   >$0650      ; 20
+    .byte   >$06D0      ; 21
+    .byte   >$0750      ; 22
+    .byte   >$07D0      ; 23
 
