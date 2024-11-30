@@ -43,11 +43,19 @@ MAP_SCREEN_BOTTOM   =  22       ; Must be /2
     lda         #$00
     jsr         clearMixedText
 
+    ; set particles location
+    ;lda         #34
+    ;sta         curY
+    ;lda         #PLAYER_XOFFSET+2
+    ;sta         curX
+
+    ldx         #SOUND_DEAD
+    jsr         playSound
+
     ;----------------------------------
     ; Main Loop
     ;----------------------------------
 loop:
-
     ; Flip page
     ;-----------
     lda         PAGE2           ; bit 7 = page2 displayed
@@ -69,10 +77,12 @@ switchTo1:
     ;---------------
 
     jsr         updateFuel
+    ;jsr         updateParticles
 
     ; Draw screen
     ;---------------
     jsr         drawTileMap
+    ;jsr         drawParticles
     jsr         drawPlayer
     jsr         drawFuelGauge
 
@@ -171,6 +181,7 @@ switchTo1:
     lda         #MAP_SCREEN_TOP
     sta         screenRow
 
+    jsr         updateSound          ; call need to be equally spaced in time
 
     ;-------------------------------------------
     ; Copy first row of map tiles to buffer
@@ -212,8 +223,10 @@ tileByteLoop1:
     jmp         tileBufferLoop1
 tileBufferDone1:
 
-    ldy         screenRow
 screenRowLoop:
+    jsr         updateSound         ; call need to be equally spaced in time
+    ldy         screenRow
+
     ;----------------------------------
     ; Set screen pointers for
     ; 2 aligned rows
@@ -312,8 +325,6 @@ tileBufferIndex:    .byte   0
 ;   Uses hardcoded fixed locations for faster render
 ;-----------------------------------------------------------------------------
 
-.proc drawPlayer
-
 PLAYER_XOFFSET  = 16
 PLAYER_ROW0_0   = $7A8 + PLAYER_XOFFSET     ; 15 (30)
 PLAYER_ROW1_0   = $450 + PLAYER_XOFFSET     ; 16 (32)
@@ -323,6 +334,8 @@ PLAYER_ROW1_1   = $400 + PLAYER_ROW1_0
 PLAYER_ROW2_1   = $400 + PLAYER_ROW2_0
 PLAYER_COLOR0   = $FF
 PLAYER_COLOR1   = $F5
+
+.proc drawPlayer
 
     lda         drawPage
     bne         draw1
@@ -370,41 +383,58 @@ FUEL_COLOR_EMPTY        = $00
 FUEL_COLOR_GOOD         = $44
 FUEL_COLOR_WARN         = $DD
 FUEL_COLOR_LOW          = $99
-FUEL_MAX_CONSUMPTION    = 15
+FUEL_MAX_CONSUMPTION    = 9
 
 FUEL_LEVEL_MAX          = 39
 
 .proc updateFuel
 
     lda         BUTTON0
-    bpl         :+
+    bmi         decreaseFuel
+
+increaseFuel:
     lda         fuelLevel
     cmp         #FUEL_LEVEL_MAX
-    bcs         :+
+    bcc         :+
+    rts
+:
+    ldx         #SOUND_REFUEL
+    jsr         playSound
+
     inc         fuelLevel
     ldx         fuelLevel
     jmp         updateColors
-:
-    inc         consumption
-    lda         consumption
-    cmp         #FUEL_MAX_CONSUMPTION
-    bcs         decreaseFuel
-    rts
 
 decreaseFuel:
-    lda         #0
-    sta         consumption
-    ldx         fuelLevel
+
+    lda         fuelLevel
     bne         :+
     rts                                 ; already empty
 :
+
+    ldx         #SOUND_ENGINE
+    jsr         playSound
+
+    inc         consumption
+    lda         consumption
+    cmp         #FUEL_MAX_CONSUMPTION
+    bcs         :+
+    rts
+:
+
+    lda         #0
+    sta         consumption
+    ldx         fuelLevel
     lda         #FUEL_COLOR_EMPTY
     sta         fuelColor,x
     dex
+    stx         fuelLevel
     bne         :+
+
+    ldx         #SOUND_DEAD
+    jsr         playSoundOverride
     rts                                 ; hit empty
 :
-    stx         fuelLevel
 updateColors:
     lda         fuelStatusColor,x
 fuelLoop:
@@ -477,8 +507,7 @@ draw1:
 
 .endProc
 
-; define for width of screen (40), but only read relevant ones
-fuelColor:      .res    40
+.include  "sound.asm"
 
 ;-----------------------------------------------------------------------------
 ; Globals
@@ -486,6 +515,9 @@ fuelColor:      .res    40
 
 worldX:             .byte   0
 worldY:             .byte   0
+
+; define for width of screen (40), but only read relevant ones
+fuelColor:      .res    40
 
 .align 256
 

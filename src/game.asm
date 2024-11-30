@@ -51,8 +51,7 @@ UNDO_SIZE       = 8
 
 .proc main
 
-    jsr         mapDemo
-    brk
+    jmp         mapDemo
 
     ; init
 
@@ -347,6 +346,12 @@ updateLockV:
     bne         :+
     rts
 :
+    ; make sure aligned
+    lda         curX
+    tax
+    lda         snapX,x
+    sta         curX
+
     lda         #1
     sta         moveVertical
     lda         #0
@@ -358,6 +363,13 @@ updateLockH:
     bne         :+
     rts
 :
+
+    ; make sure aligned
+    lda         curY
+    tax
+    lda         snapY,x
+    sta         curY
+
     lda         #0
     sta         moveVertical
     lda         #1
@@ -375,14 +387,7 @@ canMoveVertical:
     lda         #0
     rts
 :
-    ; if move both, but not vertical, set if aligned
-    lda         curX
-    tax
-    cmp         snapX,x
-    beq         :+
-    lda         #0
-    rts
-:
+    ; if move both, but not vertical, snap to grid
     lda         #1
     sta         moveVertical
     rts
@@ -398,14 +403,7 @@ canMoveHorizontal:
     lda         #0
     rts
 :
-    ; if move both, but not horizontal, set if aligned
-    lda         curY
-    tax
-    cmp         snapY,x
-    beq         :+
-    lda         #0
-    rts
-:
+    ; if move both, but not horizontal, snap to grid
     lda         #1
     sta         moveHorizontal
     rts
