@@ -91,6 +91,15 @@ switchTo1:
 
     ; Get input
     ;---------------
+
+    ldx         #0
+    jsr         PREAD
+    sty         mapPaddleX
+:
+    nop
+    iny
+    bne         :-              ; Add delay for small values to make constant
+
     lda         KBD
     bpl         loop
 
@@ -479,11 +488,8 @@ FUEL_ROW2_1     = $400 + FUEL_ROW2_0
 
 draw0:
     lda         fuelColor,x
-    sta         FUEL_ROW1_0,x
-    ;and         #$F0
     sta         FUEL_ROW0_0,x
-    lda         fuelColor,x
-    ;and         #$0F
+    sta         FUEL_ROW1_0,x
     sta         FUEL_ROW2_0,x
     inx
     inx
@@ -493,11 +499,8 @@ draw0:
 
 draw1:
     lda         fuelColor,x
-    sta         FUEL_ROW1_1,x
-    ;and         #$F0
     sta         FUEL_ROW0_1,x
-    lda         fuelColor,x
-    ;and         #$0F
+    sta         FUEL_ROW1_1,x
     sta         FUEL_ROW2_1,x
     inx
     inx
@@ -515,6 +518,7 @@ draw1:
 
 worldX:             .byte   0
 worldY:             .byte   0
+mapPaddleX:         .byte   0       ; Paddle 0 value (scaled 0..39)
 
 ; define for width of screen (40), but only read relevant ones
 fuelColor:      .res    40

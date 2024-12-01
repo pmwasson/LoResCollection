@@ -95,6 +95,11 @@ ALTCHARSETON    := $C00F    ; Write to turn on alternate characters
 BUTTON0         := $C061    ; Bit 7 set if paddle button 0 is pressed
 BUTTON1         := $C062    ; Bit 7 set if paddle button 1 is pressed
 BUTTON2         := $C063    ; Bit 7 set if paddle button 2 is pressed
+GC0 			:= $C064 	; Status of game controller 0 (bit 7).
+GC1 			:= $C065 	; Status of game controller 1 (bit 7).
+GC2 			:= $C066 	; Status of game controller 2 (bit 7).
+GC3 			:= $C067 	; Status of game controller 3 (bit 7).
+GCRESET 		:= $C070 	; Reset the game controllers.
 
 ; 2GS
 NEWVIDEO        := $C029 	; New Video: 129=SHR, 1=None, Bit 6=Linearize, Bit 5=BW
