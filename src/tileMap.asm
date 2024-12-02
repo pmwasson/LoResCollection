@@ -106,7 +106,7 @@ switchTo1:
     cmp         #KEY_DOWN
     bne         :+
     lda         worldY
-    cmp         #(64-2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP))
+    cmp         #(MAP_HEIGHT*4-2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP))
     beq         loop
     inc         worldY
     jmp         loop
@@ -121,7 +121,7 @@ switchTo1:
     cmp         #KEY_RIGHT
     bne         :+
     lda         worldX
-    cmp         #(64-(MAP_SCREEN_RIGHT-MAP_SCREEN_LEFT))
+    cmp         #(MAP_WIDTH*4-(MAP_SCREEN_RIGHT-MAP_SCREEN_LEFT))
     beq         loop
     inc         worldX
     jmp         loop
@@ -165,13 +165,19 @@ switchTo1:
     asl
     asl
     asl
-    asl                     ; * 16 (MAP_WIDTH)
+    asl
+    asl                     ; * 32 (MAP_WIDTH)
 
     clc
     adc         mapCol
     sta         mapPtr0
 
-    lda         #>map
+    lda         mapRow
+    lsr
+    lsr
+    lsr                     ; / 8 (256/MAP_WIDTH)
+    clc
+    adc         #>map
     sta         mapPtr1
 
     lda         worldX
@@ -259,7 +265,9 @@ screenRowLoop:
     clc
     adc         #MAP_WIDTH
     sta         mapPtr0
-    ; TODO, update mapPtr1 when map get bigger
+    lda         mapPtr1
+    adc         #0
+    sta         mapPtr1
 
     ; initial horizontal offset
     ldy         #0
@@ -671,8 +679,8 @@ mapTiles:
 
 .align 256
 
-; 16x16 for testing
-MAP_WIDTH = 16
+MAP_WIDTH = 32
+MAP_HEIGHT = 32
 
 X__ = $00
 XXX = $04
@@ -693,19 +701,35 @@ XC2 = $3C
 XC3 = $40
 
 map:
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XSE,X__,XSW,XSE,X__,XSW,XSE,XC1,XC2,XC3,XC2,XSW,XXX,XXX
-    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XNE,X__,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XSE,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,X__,X__,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX
-    .byte   XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX
-    .byte   XXX,XXX,XR1,X__,X__,X__,XF1,XF2,XF1,XNE,XNW,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,XSW,XSE,X__,XSW,XSE,XC1,XC2,XC3,XC2,XSW,XXX,XXX,XXX,XXX,XSE,X__,XSW,XSE,X__,XSW,XSE,XC1,XC2,XC3,XC2,XSW,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XNE,X__,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XNE,X__,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XSE,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XSE,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XF1,XF2,XF1,XF3,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX
+    .byte   XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,XF3,XF2,XL1,XXX,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX
+    .byte   XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XR1,XF2,XF3,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XC3,XC2,XSW,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XNE,XXX,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XF1,XF2,XF1,XF3,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX
+    .byte   XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,XF3,XF2,XL1,XXX,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX
+    .byte   XXX,XXX,XR1,X__,X__,X__,XF1,XF2,XF1,XNE,XNW,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XR1,XF2,XF3,XF1,XF1,XF2,XF1,XNW,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
