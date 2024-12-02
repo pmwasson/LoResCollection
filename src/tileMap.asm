@@ -407,10 +407,17 @@ increaseFuel:
     bcc         :+
     rts
 :
+    inc         fuelLevel
+    lda         fuelLevel
+    cmp         #FUEL_LEVEL_MAX
+    bne         :+
+    ldx         #SOUND_CHARM
+    jsr         playSound
+    ldx         fuelLevel
+    jmp         updateColors
+:
     ldx         #SOUND_REFUEL
     jsr         playSound
-
-    inc         fuelLevel
     ldx         fuelLevel
     jmp         updateColors
 
@@ -441,7 +448,7 @@ decreaseFuel:
     bne         :+
 
     ldx         #SOUND_DEAD
-    jsr         playSoundOverride
+    jsr         playSound
     rts                                 ; hit empty
 :
 updateColors:

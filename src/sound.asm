@@ -2,10 +2,12 @@
 ; Paul Wasson - 2024
 ;-----------------------------------------------------------------------------
 
-SOUND_WAKEUP =  soundWakeup - soundTablePitch
-SOUND_DEAD   =  soundDead   - soundTablePitch
-SOUND_ENGINE =  soundEngine - soundTablePitch
-SOUND_REFUEL =  soundRefuel - soundTablePitch
+SOUND_OFF    =  soundOff    - soundTable
+SOUND_WAKEUP =  soundWakeup - soundTable
+SOUND_DEAD   =  soundDead   - soundTable
+SOUND_REFUEL =  soundRefuel - soundTable
+SOUND_CHARM  =  soundCharm  - soundTable
+SOUND_ENGINE =  soundEngine - soundTable
 
 ;-----------------------------------------------------------------------------
 ; updateSound
@@ -39,46 +41,47 @@ done:
 
 ;-----------------------------------------------------------------------------
 ; playSound
-;   play sound if not already playing a previous sound
+;   play sound if not already playing a previous sound or higher priority
 ;   use playSoundOverride to always play new sound
 ;   pass sound in X
 ;-----------------------------------------------------------------------------
 .proc playSound
-    lda         soundActive
-    beq         playSoundOverride
+    cpx         soundActive
+    beq         :+
+    bcs         playSoundOverride
+:
     rts
 .endproc
 
 .proc playSoundOverride
+    stx         soundActive
     ldy         #0
     sty         soundIndex
 loop:
-    lda         soundTablePitch,x
-    sta         soundPitch,y
-    lda         soundTableLength,x
-    sta         soundLength,y
+    lda         soundTable,x        ; length
     beq         done
+    sta         soundLength,y
+    inx
+    lda         soundTable,x        ; pitch
+    sta         soundPitch,y
     inx
     iny
     jmp         loop
 done:
-    lda         #1
-    sta         soundActive
     lda         soundPitch
     sta         soundCounter
     rts
 .endproc
 
-soundTablePitch:
-soundWakeup:        .byte   2,    1,   3,   1,   0
-soundDead:          .byte   1,    2,   4,   0
-soundEngine:        .byte   4,    3,   0
-soundRefuel:        .byte   1,    0,   0
-soundTableLength:
-                    .byte   140,  140, 140, 140, 0
-                    .byte   140,  140, 140, 0
-                    .byte   10,   10, 0
-                    .byte   10,   20, 0
+; Pairs of length and pitch (length 0 = done)
+; Table order by priority (first sound in table lowest priority)
+soundTable:
+soundOff:       .byte   0
+soundEngine:    .byte   10,4,  10,3,  0
+soundRefuel:    .byte   10,1,  20,0,  0
+soundCharm:     .byte   34,2,  35,1,  0
+soundDead:      .byte   140,1, 140,2, 140,4, 0
+soundWakeup:    .byte   140,2, 140,1, 140,3, 140,1, 0
 
 ;-----------------------------------------------------------------------------
 ; Globals
