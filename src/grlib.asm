@@ -4,7 +4,6 @@
 ; GR Lib
 ; Collection of lo-res graphic routines
 
-
 ;-----------------------------------------------------------------------------
 ; Wait
 ;   Interruptable delay
@@ -286,74 +285,6 @@ color:          .byte   $0e,$e0
     adc         drawPage        ; previous carry should be clear
     sta         screenPtr1
     rts
-.endproc
-
-;-----------------------------------------------------------------------------
-; drawTile      - draw 5x6 tile (tileY = pixel row/2)
-;-----------------------------------------------------------------------------
-
-;-----------------
-.proc setTilePtr
-;-----------------
-    ; calculate tile pointer
-    sta         tileIdx         ; Save a copy of A
-    asl
-    asl
-    asl
-    asl                         ; multiple by 16
-    clc
-    adc         #<tileSheet
-    sta         tilePtr0
-
-    lda         #0
-    adc         #>tileSheet
-    sta         tilePtr1
-    lda         tileIdx
-    lsr
-    lsr
-    lsr
-    lsr                         ; Divide by 16
-    clc
-    adc         tilePtr1
-    sta         tilePtr1
-    rts
-.endproc
-
-;--------------
-.proc drawTile
-;--------------
-
-    jsr         setTilePtr
-
-    ; copy tileY
-    lda         tileY
-    sta         tempZP
-
-    ; 3 rows
-    ldx         #TILE_HEIGHT
-
-loopy:
-    jsr         setScreenPtr
-    ; set 5 bytes
-    ldy         #TILE_WIDTH-1
-loopx:
-    lda         (screenPtr0),y
-    lda         (tilePtr0),y
-    sta         (screenPtr0),y
-    dey
-    bpl         loopx
-
-    lda         tilePtr0
-    adc         #TILE_WIDTH
-    sta         tilePtr0
-
-    inc         tempZP      ; next line
-
-    dex
-    bne         loopy
-
-    rts
-
 .endproc
 
 ;-----------------------------------------------------------------------------

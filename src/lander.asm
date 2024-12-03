@@ -1,8 +1,16 @@
 ;-----------------------------------------------------------------------------
-; Tile Map
+; Paul Wasson - 2024
 ;-----------------------------------------------------------------------------
-; Low Res tile map
+; Lander
 ;-----------------------------------------------------------------------------
+; Low res lander game
+;-----------------------------------------------------------------------------
+
+.include "defines.asm"
+.include "macros.asm"
+
+.segment "CODE"
+.org    $2000
 
 ; Reuse zero page pointers
 evenPtr0            :=  screenPtr0
@@ -17,7 +25,7 @@ MAP_SCREEN_RIGHT    =  36
 MAP_SCREEN_TOP      =  4        ; Must be /2
 MAP_SCREEN_BOTTOM   =  22       ; Must be /2
 
-.proc mapDemo
+.proc main
 
     ;----------------------------------
     ; Init demo
@@ -137,9 +145,7 @@ switchTo1:
     cmp         #KEY_ESC
     bne         :+
     sta         KBDSTRB
-    jsr         TEXT
-    jsr         HOME
-    jmp         MON
+    jmp         monitor
 :
 
     jmp         loop
@@ -525,7 +531,63 @@ draw1:
 
 .endProc
 
-.include  "sound.asm"
+
+;-----------------------------------------------------------------------------
+; Monitor
+;
+;  Exit to monitor
+;-----------------------------------------------------------------------------
+.proc monitor
+    jsr         TEXT
+
+    ; Set ctrl-y vector
+    lda         #$4c        ; JMP
+    sta         $3f8
+    lda         #<quit
+    sta         $3f9
+    lda         #>quit
+    sta         $3fa
+
+    jsr    inlinePrint
+    .byte       13
+    StringCR "Enter ctrl-y to quit to ProDos"
+
+    ;bit     TXTSET
+    jmp     MONZ        ; enter monitor
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Quit
+;
+;   Exit to ProDos
+;-----------------------------------------------------------------------------
+.proc quit
+
+    sta         LOWSCR          ; page 1
+    sta         TXTSET          ; text mode
+
+    jsr         MLI
+    .byte       CMD_QUIT
+    .word       quitParams
+
+
+quitParams:
+    .byte       4               ; 4 parameters
+    .byte       0               ; 0 is the only quit type
+    .word       0               ; Reserved pointer for future use (what future?)
+    .byte       0               ; Reserved byte for future use (what future?)
+    .word       0               ; Reserved pointer for future use (what future?)
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Libraries
+;-----------------------------------------------------------------------------
+
+.include "inline_print.asm"
+.include "grlib.asm"
+.include "sound.asm"
 
 ;-----------------------------------------------------------------------------
 ; Globals

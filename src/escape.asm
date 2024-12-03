@@ -15,9 +15,6 @@
 .segment "CODE"
 .org    $2000
 
-TILE_WIDTH      = 5         ; 5 bytes wide
-TILE_HEIGHT     = 3         ; 3 bytes high
-
 GRID_X          = 5
 GRID_Y          = 5
 GRID_HEIGHT     = 7
@@ -50,9 +47,6 @@ INPUT_BUTTON    = $80
 UNDO_SIZE       = 8
 
 .proc main
-
-    jmp         mapDemo
-
     ; init
 
     lda         #0
@@ -1666,5 +1660,4 @@ translateY:
 .include "tiles.asm"
 .include "shapes.asm"
 .include "levels.asm"
-.include "tileMap.asm"
 
