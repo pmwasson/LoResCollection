@@ -209,7 +209,7 @@ skipHorizontal:
 :
     cmp         #KEY_ESC
     bne         :+
-    jsr         TEXT
+    jmp         quit
     brk
 :
     cmp         #KEY_TAB
