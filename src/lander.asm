@@ -25,6 +25,18 @@ MAP_SCREEN_RIGHT    =  36
 MAP_SCREEN_TOP      =  4        ; Must be /2
 MAP_SCREEN_BOTTOM   =  22       ; Must be /2
 
+POS_CHECK_BOTTOM    = MAP_HEIGHT*4  -2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP)
+POS_CHECK_LEFT      = MAP_WIDTH*4   -  (MAP_SCREEN_RIGHT -MAP_SCREEN_LEFT)
+
+THRUST_POS0         = 10
+THRUST_POS1         = 0
+
+THRUST_NEG0         = 256-THRUST_POS0
+THRUST_NEG1         = 255
+
+GRAVITY0            = 5
+GRAVITY1            = 0
+
 .proc main
 
     ;----------------------------------
@@ -87,6 +99,59 @@ switchTo1:
     jsr         updateFuel
     ;jsr         updateParticles
 
+
+    ; Gravity
+    lda         vecY0
+    adc         #GRAVITY0
+    sta         vecY0
+    lda         vecY1
+    adc         #GRAVITY1
+    sta         vecY1
+
+    ; update player Y
+    clc
+    lda         vecY0
+    adc         posY
+    sta         posY
+    lda         vecY1
+    adc         worldY
+    bpl         :+
+    lda         #0
+    sta         vecY0
+    sta         vecY1
+:
+    cmp         #POS_CHECK_BOTTOM
+    bcc         :+
+    lda         #0
+    sta         vecY0
+    sta         vecY1
+    lda         #POS_CHECK_BOTTOM
+:
+    sta         worldY
+
+    ; update player X
+    clc
+    lda         vecX0
+    adc         posX
+    sta         posX
+    lda         vecX1
+    adc         worldX
+    bpl         :+
+    lda         #0
+    sta         vecX0
+    sta         vecX1
+:
+    cmp         #POS_CHECK_LEFT
+    bcc         :+
+    lda         #0
+    sta         vecX0
+    sta         vecX1
+    lda         #POS_CHECK_LEFT
+:
+    sta         worldX
+
+
+
     ; Draw screen
     ;---------------
     jsr         drawTileMap
@@ -109,36 +174,50 @@ switchTo1:
     bne         :-              ; Add delay for small values to make constant
 
     lda         KBD
-    bpl         loop
+    bmi         :+
+    jmp         loop
+:
+    sta         KBDSTRB
 
     cmp         #KEY_DOWN
     bne         :+
-    lda         worldY
-    cmp         #(MAP_HEIGHT*4-2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP))
-    beq         loop
-    inc         worldY
+    lda         vecY0
+    adc         #THRUST_POS0
+    sta         vecY0
+    lda         vecY1
+    adc         #THRUST_POS1
+    sta         vecY1
     jmp         loop
 :
     cmp         #KEY_UP
     bne         :+
-    lda         worldY
-    beq         loop
-    dec         worldY
+    clc
+    lda         vecY0
+    adc         #THRUST_NEG0
+    sta         vecY0
+    lda         vecY1
+    adc         #THRUST_NEG1
+    sta         vecY1
     jmp         loop
 :
     cmp         #KEY_RIGHT
     bne         :+
-    lda         worldX
-    cmp         #(MAP_WIDTH*4-(MAP_SCREEN_RIGHT-MAP_SCREEN_LEFT))
-    beq         loop
-    inc         worldX
+    lda         vecX0
+    adc         #THRUST_POS0
+    sta         vecX0
+    lda         vecX1
+    adc         #THRUST_POS1
+    sta         vecX1
     jmp         loop
 :
     cmp         #KEY_LEFT
     bne         :+
-    lda         worldX
-    beq         loop
-    dec         worldX
+    lda         vecX0
+    adc         #THRUST_NEG0
+    sta         vecX0
+    lda         vecX1
+    adc         #THRUST_NEG1
+    sta         vecX1
     jmp         loop
 :
 
@@ -595,7 +674,13 @@ quitParams:
 
 worldX:             .byte   0
 worldY:             .byte   0
-mapPaddleX:         .byte   0       ; Paddle 0 value (scaled 0..39)
+mapPaddleX:         .byte   0
+posX:               .byte   0   ; sub pixel
+posY:               .byte   0   ; sub pixel
+vecX0:              .byte   0
+vecX1:              .byte   0
+vecY0:              .byte   0
+vecY1:              .byte   0
 
 ; define for width of screen (40), but only read relevant ones
 fuelColor:      .res    40
