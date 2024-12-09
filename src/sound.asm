@@ -7,6 +7,7 @@ SOUND_WAKEUP =  soundWakeup - soundTable
 SOUND_DEAD   =  soundDead   - soundTable
 SOUND_REFUEL =  soundRefuel - soundTable
 SOUND_CHARM  =  soundCharm  - soundTable
+SOUND_BUMP   =  soundBump   - soundTable
 SOUND_ENGINE =  soundEngine - soundTable
 
 ;-----------------------------------------------------------------------------
@@ -78,6 +79,7 @@ done:
 soundTable:
 soundOff:       .byte   0
 soundEngine:    .byte   10,4,  10,3,  0
+soundBump:      .byte   15,2,  0
 soundRefuel:    .byte   10,1,  20,0,  0
 soundCharm:     .byte   34,2,  35,1,  0
 soundDead:      .byte   140,1, 140,2, 140,4, 0

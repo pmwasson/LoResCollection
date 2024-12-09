@@ -13,29 +13,37 @@
 .org    $2000
 
 ; Reuse zero page pointers
-evenPtr0            :=  screenPtr0
-evenPtr1            :=  screenPtr1
-oddPtr0             :=  maskPtr0
-oddPtr1             :=  maskPtr1
-tileShiftInit       :=  tempZP
-tileShiftRemainder  :=  temp2ZP
+evenPtr0                :=  screenPtr0
+evenPtr1                :=  screenPtr1
+oddPtr0                 :=  maskPtr0
+oddPtr1                 :=  maskPtr1
+tileShiftInit           :=  tempZP
+tileShiftRemainder      :=  temp2ZP
 
-MAP_SCREEN_LEFT     =  2
-MAP_SCREEN_RIGHT    =  36
-MAP_SCREEN_TOP      =  4        ; Must be /2
-MAP_SCREEN_BOTTOM   =  22       ; Must be /2
+MAP_SCREEN_LEFT         =  2
+MAP_SCREEN_RIGHT        =  36
+MAP_SCREEN_TOP          =  4        ; Must be /2
+MAP_SCREEN_BOTTOM       =  22       ; Must be /2
 
-POS_CHECK_BOTTOM    = MAP_HEIGHT*4  -2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP)
-POS_CHECK_LEFT      = MAP_WIDTH*4   -  (MAP_SCREEN_RIGHT -MAP_SCREEN_LEFT)
+POS_CHECK_BOTTOM        = MAP_HEIGHT*4  -2*(MAP_SCREEN_BOTTOM-MAP_SCREEN_TOP)
+POS_CHECK_LEFT          = MAP_WIDTH*4   -  (MAP_SCREEN_RIGHT -MAP_SCREEN_LEFT)
 
-THRUST_POS0         = 10
-THRUST_POS1         = 0
+THRUST_POS0             = 10
+THRUST_POS1             = 0
 
-THRUST_NEG0         = 256-THRUST_POS0
-THRUST_NEG1         = 255
+THRUST_NEG0             = 256-THRUST_POS0
+THRUST_NEG1             = 255
 
-GRAVITY0            = 5
-GRAVITY1            = 0
+GRAVITY0                = 5
+GRAVITY1                = 0
+
+BG_COLOR                = $77   ; for collision detection
+
+COLLISION_TOP           = %0001
+COLLISION_LEFT          = %0010
+COLLISION_RIGHT         = %0100
+COLLISION_BOTTOM_LEFT   = %1010
+COLLISION_BOTTOM_RIGHT  = %1100
 
 .proc main
 
@@ -155,6 +163,24 @@ switchTo1:
     ; Draw screen
     ;---------------
     jsr         drawTileMap
+
+    ; check for collision after drawing map, but before any other drawing
+    lda         #PLAYER_COLOR0
+    sta         shipColor0
+    lda         #PLAYER_COLOR1
+    sta         shipColor1
+    jsr         detectCollision
+    cmp         #0
+    beq         :+
+    lda         #PLAYER_COLLISION_COLOR0
+    sta         shipColor0
+    lda         #PLAYER_COLLISION_COLOR1
+    sta         shipColor1
+    ldx         #SOUND_BUMP
+    jsr         playSound
+:
+
+    ; Draw foreground
     ;jsr         drawParticles
     jsr         drawPlayer
     jsr         drawFuelGauge
@@ -436,6 +462,8 @@ PLAYER_ROW1_1   = $400 + PLAYER_ROW1_0
 PLAYER_ROW2_1   = $400 + PLAYER_ROW2_0
 PLAYER_COLOR0   = $FF
 PLAYER_COLOR1   = $F5
+PLAYER_COLLISION_COLOR0 = $99
+PLAYER_COLLISION_COLOR1 = $90
 
 .proc drawPlayer
 
@@ -450,29 +478,101 @@ PLAYER_COLOR1   = $F5
     ; #    #
 
 draw0:
-    lda         #PLAYER_COLOR0
+    lda         shipColor0
     sta         PLAYER_ROW0_0+2
     sta         PLAYER_ROW0_0+3
     sta         PLAYER_ROW1_0+1
     sta         PLAYER_ROW1_0+4
     sta         PLAYER_ROW2_0+0
     sta         PLAYER_ROW2_0+5
-    lda         #PLAYER_COLOR1
+    lda         shipColor1
     sta         PLAYER_ROW1_0+2
     sta         PLAYER_ROW1_0+3
     rts
 
 draw1:
-    lda         #PLAYER_COLOR0
+    lda         shipColor0
     sta         PLAYER_ROW0_1+2
     sta         PLAYER_ROW0_1+3
     sta         PLAYER_ROW1_1+1
     sta         PLAYER_ROW1_1+4
     sta         PLAYER_ROW2_1+0
     sta         PLAYER_ROW2_1+5
-    lda         #PLAYER_COLOR1
+    lda         shipColor1
     sta         PLAYER_ROW1_1+2
     sta         PLAYER_ROW1_1+3
+    rts
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; detectCollision
+;   Try to make non-collision quick as is the normal case
+;-----------------------------------------------------------------------------
+
+.proc detectCollision
+
+    lda         drawPage
+    bne         collision1
+
+collision0:
+    lda         #0
+    ldy         #BG_COLOR
+    cpy         PLAYER_ROW0_0+2
+    beq         :+
+    ora         #COLLISION_TOP
+:
+    cpy         PLAYER_ROW0_0+3
+    beq         :+
+    ora         #COLLISION_TOP
+:
+    cpy         PLAYER_ROW1_0+1
+    beq         :+
+    ora         #COLLISION_LEFT
+:
+    ; skipping middle of ship
+    cpy         PLAYER_ROW1_0+4
+    beq         :+
+    ora         #COLLISION_RIGHT
+:
+    cpy         PLAYER_ROW2_0+0
+    beq         :+
+    ora         #COLLISION_BOTTOM_LEFT
+:
+    cpy         PLAYER_ROW2_0+5
+    beq         :+
+    ora         #COLLISION_BOTTOM_RIGHT
+:
+    rts
+
+collision1:
+    lda         #0
+    ldy         #BG_COLOR
+    cpy         PLAYER_ROW0_1+2
+    beq         :+
+    ora         #COLLISION_TOP
+:
+    cpy         PLAYER_ROW0_1+3
+    beq         :+
+    ora         #COLLISION_TOP
+:
+    cpy         PLAYER_ROW1_1+1
+    beq         :+
+    ora         #COLLISION_LEFT
+:
+    ; skipping middle of ship
+    cpy         PLAYER_ROW1_1+4
+    beq         :+
+    ora         #COLLISION_RIGHT
+:
+    cpy         PLAYER_ROW2_1+0
+    beq         :+
+    ora         #COLLISION_BOTTOM_LEFT
+:
+    cpy         PLAYER_ROW2_1+5
+    beq         :+
+    ora         #COLLISION_BOTTOM_RIGHT
+:
     rts
 
 .endproc
@@ -681,6 +781,9 @@ vecX0:              .byte   0
 vecX1:              .byte   0
 vecY0:              .byte   0
 vecY1:              .byte   0
+
+shipColor0:         .byte   PLAYER_COLOR0
+shipColor1:         .byte   PLAYER_COLOR1
 
 ; define for width of screen (40), but only read relevant ones
 fuelColor:      .res    40
