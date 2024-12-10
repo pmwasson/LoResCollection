@@ -14,6 +14,10 @@ python3 ..\scripts\imageConvert.py ..\images\land1.jpg  image.png >  ..\src\imag
 ca65 -I ..\src -t apple2 ..\src\lander.asm -l lander.dis || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\lander.asm apple2.lib  -o lander.apple2 -C ..\src\start2000.cfg || exit
 
+:: Robo
+ca65 -I ..\src -t apple2 ..\src\robo.asm -l robo.dis || exit
+cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\robo.asm apple2.lib  -o robo.apple2 -C ..\src\start2000.cfg || exit
+
 :: Escape
 ca65 -I ..\src -t apple2 ..\src\escape.asm -l escape.dis || exit
 cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\escape.asm apple2.lib  -o escape.apple2 -C ..\src\start2000.cfg || exit
@@ -29,10 +33,10 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\landscape.asm apple2.lib  -o lands
 :: Start with a blank prodos disk
 copy ..\disk\template_prodos.dsk lores.dsk  || exit
 
-
 java -jar C:\jar\AppleCommander.jar -as lores.dsk lander.system sys < lander.apple2  || exit
 java -jar C:\jar\AppleCommander.jar -as lores.dsk land.system sys < landscape.apple2  || exit
 java -jar C:\jar\AppleCommander.jar -as lores.dsk escape.system sys < escape.apple2  || exit
+java -jar C:\jar\AppleCommander.jar -as lores.dsk robo.system sys < robo.apple2  || exit
 
 :: Throw on basic
 java -jar C:\jar\AppleCommander.jar -p   lores.dsk basic.system sys < ..\disk\BASIC.SYSTEM  || exit
