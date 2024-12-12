@@ -39,6 +39,7 @@ GRAVITY1                = 0
 
 BG_COLOR                = $77   ; for collision detection
 
+COLLISION_MASK          = %1111
 COLLISION_TOP           = %0001
 COLLISION_LEFT          = %0010
 COLLISION_RIGHT         = %0100
@@ -158,8 +159,6 @@ switchTo1:
 :
     sta         worldX
 
-
-
     ; Draw screen
     ;---------------
     jsr         drawTileMap
@@ -170,7 +169,8 @@ switchTo1:
     lda         #PLAYER_COLOR1
     sta         shipColor1
     jsr         detectCollision
-    cmp         #0
+    and         #COLLISION_MASK
+    sta         collisionResult
     beq         :+
     lda         #PLAYER_COLLISION_COLOR0
     sta         shipColor0
@@ -178,6 +178,7 @@ switchTo1:
     sta         shipColor1
     ldx         #SOUND_BUMP
     jsr         playSound
+    jsr         resolveCollision
 :
 
     ; Draw foreground
@@ -512,12 +513,12 @@ draw1:
 
 .proc detectCollision
 
-    lda         drawPage
+    lda         #0              ; result
+    ldy         #BG_COLOR
+    ldx         drawPage
     bne         collision1
 
 collision0:
-    lda         #0
-    ldy         #BG_COLOR
     cpy         PLAYER_ROW0_0+2
     beq         :+
     ora         #COLLISION_TOP
@@ -546,8 +547,6 @@ collision0:
     rts
 
 collision1:
-    lda         #0
-    ldy         #BG_COLOR
     cpy         PLAYER_ROW0_1+2
     beq         :+
     ora         #COLLISION_TOP
@@ -576,6 +575,55 @@ collision1:
     rts
 
 .endproc
+
+;-----------------------------------------------------------------------------
+; Resolve Collision
+;-----------------------------------------------------------------------------
+
+.proc resolveCollision
+    ldy         #0
+    ldx         collisionResult
+    lda         collisionResultTable,x
+    ror
+    bcc         :+
+    ; Clear VX
+    sty         vecX0
+    sty         vecX1
+:
+    ror
+    bcc         :+
+    ; Clear VY
+    sty         vecY0
+    sty         vecY1
+:
+    ror
+    bcc         :+
+    ; Move down
+    inc         worldY
+    sty         posY
+:
+    ror
+    bcc         :+
+    ; Move right
+    inc         worldX
+    sty         posX
+:
+    ror
+    bcc         :+
+    ; Move left
+    dec         worldX
+    sty         posX
+:
+    ror
+    bcc         :+
+    ; Move up
+    dec         worldY
+    sty         posY
+:
+    rts
+
+.endproc
+
 
 ;-----------------------------------------------------------------------------
 ; Update Fuel
@@ -778,9 +826,10 @@ mapPaddleX:         .byte   0
 posX:               .byte   0   ; sub pixel
 posY:               .byte   0   ; sub pixel
 vecX0:              .byte   0
-vecX1:              .byte   0
+vecX1:              .byte   0   ; should only be 00 or FF (max value +/-1)
 vecY0:              .byte   0
 vecY1:              .byte   0
+collisionResult:    .byte   0
 
 shipColor0:         .byte   PLAYER_COLOR0
 shipColor1:         .byte   PLAYER_COLOR1
@@ -789,6 +838,34 @@ shipColor1:         .byte   PLAYER_COLOR1
 fuelColor:      .res    40
 
 .align 256
+
+RESULT_CLEAR_VX         =   %000001
+RESULT_CLEAR_VY         =   %000010
+RESULT_MOVE_DOWN        =   %000100
+RESULT_MOVE_RIGHT       =   %001000
+RESULT_MOVE_LEFT        =   %010000
+RESULT_MOVE_UP          =   %100000
+
+RESULT_LEFT             = RESULT_CLEAR_VX | RESULT_MOVE_LEFT
+RESULT_RIGHT            = RESULT_CLEAR_VX | RESULT_MOVE_RIGHT
+RESULT_DOWN             = RESULT_CLEAR_VY | RESULT_MOVE_DOWN
+RESULT_UP               = RESULT_CLEAR_VY | RESULT_MOVE_UP
+RESULT_DOWN_RIGHT       = RESULT_DOWN     | RESULT_RIGHT
+RESULT_DOWN_LEFT        = RESULT_DOWN     | RESULT_LEFT
+RESULT_UP_RIGHT         = RESULT_UP       | RESULT_RIGHT
+RESULT_UP_LEFT          = RESULT_UP       | RESULT_LEFT
+RESULT_ALL_LEFT         = RESULT_CLEAR_VY | RESULT_LEFT
+RESULT_ALL_RIGHT        = RESULT_CLEAR_VY | RESULT_RIGHT
+RESULT_ALL_DOWN         = RESULT_CLEAR_VX | RESULT_DOWN
+RESULT_ALL_UP           = RESULT_CLEAR_VX | RESULT_UP
+RESULT_ALL_STOP         = RESULT_CLEAR_VX | RESULT_CLEAR_VY
+
+;16 bytes
+collisionResultTable:                                                                   ; * = illegal
+    .byte   0,              RESULT_DOWN,        RESULT_RIGHT,       RESULT_DOWN_RIGHT   ; 0000  0001  0010 0011
+    .byte   RESULT_LEFT,    RESULT_DOWN_LEFT,   RESULT_ALL_UP,      RESULT_ALL_DOWN     ; 0100  0101  0110 0111
+    .byte   RESULT_UP,      RESULT_ALL_STOP,    RESULT_UP_RIGHT,    RESULT_ALL_RIGHT    ; 1000* 1001* 1010 1011
+    .byte   RESULT_UP_LEFT, RESULT_ALL_LEFT,    RESULT_ALL_UP,      RESULT_ALL_STOP     ; 1100  1101  1110 1111
 
 
 ; 44 bytes
