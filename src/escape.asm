@@ -449,16 +449,19 @@ winnerColors:
     sta         inputDelay
 
 loop:
-    ldx         #0
-    jsr         PREAD           ; read joystick X
-    sty         paddleX
+    jsr         readJoystick
 
-    jsr         wait
-    bmi         keypress
+    clc
 
-    ldx         #1
-    jsr         PREAD           ; read joystick 1
-    sty         paddleY
+    lda         paddleX             ; 0..107
+    asl                             ; 0..214  (clc for free)
+    adc         #21                 ; 21..235 (235=256-21)
+    sta         paddleX
+
+    lda         paddleY             ; 0..107
+    asl                             ; 0..214  (clc for free)
+    adc         #21                 ; 21..235 (235=256-21)
+    sta         paddleY
 
     jsr         wait
     bmi         keypress
@@ -1511,8 +1514,6 @@ quitParams:
 
 ; input values
 joystickEnable:     .byte   0
-paddleX:            .byte   0
-paddleY:            .byte   0
 button0:            .byte   0
 lastKey:            .byte   0
 inputDelay:         .byte   0

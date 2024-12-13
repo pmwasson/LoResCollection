@@ -640,252 +640,47 @@ boxRight:       .byte   39
 boxTop:         .byte   20
 boxBottom:      .byte   24
 
-
 ;-----------------------------------------------------------------------------
-; drawMap
+; Read Joystick
+;   Read both paddles in a constant time routine
+;   Range is $00 .. $6B (107) since sampled less often than PREAD
+;   Range measured on AppleWin, but assumed similar to real HW.
 ;-----------------------------------------------------------------------------
+PADDLE_MAX      = $6B
+.align 64               ; For timing, make sure branches don't cross pages
 
-.proc drawMap
+.proc readJoystick
 
-    ;--------
-    jsr         HOME        ; clear screen
-    jsr         GR          ; set low-res graphics mode
     lda         #0
-    sta         drawPage
-    ;--------
-    lda         screenTop
-    sta         mapRow
+    sta         paddleX
+    sta         paddleY
+    sta         GCRESET
+    ldx         #PADDLE_MAX
 
-    ; Horizontal first, setting all pixels
-    ; MapRow is a pair of pixels (even/odd)
-loopH:
-    ldy         mapRow
-    lda         lineOffset,y
-    sta         screenPtr0
-    lda         linePage,y
-    clc
-    adc         drawPage
-    sta         screenPtr1
-
-    lda         mapRowEvenA,y
-    sta         switchColorA
-    lda         mapRowEvenB,y
-    sta         switchColorB
-    jsr         drawEvenHLine
-
-    ldy         mapRow
-    lda         mapRowOddA,y
-    sta         switchColorA
-    lda         mapRowOddB,y
-    sta         switchColorB
-    jsr         drawOddHLine
-
-    inc         mapRow
-    lda         mapRow
-    cmp         screenBottom
-    bne         loopH
-
-    ;--------
-    ;lda         #$55
-    ;sta         bg0
-    ;sta         bg1
-    ;jsr         clearScreen
-    ;--------
-
-    ; Vertical next, only setting some pixels
-    ldx         screenLeft
-    stx         mapCol
-loopV:
-    lda         mapColA,x
-    sta         mapRow
-    lda         mapColB,x
-    sta         switchColorB
-    jsr         drawVLine
-
-    inc         mapCol
-    ldx         mapCol
-    cpx         screenRight
-    bne         loopV
-
+loop:
+    lda         GC0
+    bpl         done0
+    inc         paddleX
+read1:
+    lda         GC1         ; 4 cycles
+    bpl         done1       ; 2 cycles (+1 for taken)
+    inc         paddleY     ; 6 cycle
+finish:
+    dex
+    bne         loop
     rts
 
+done0:                      ; +1 cycle for taken branch
+    nop                     ; +2
+    jmp         read1       ; +3 = 6 (same as inc above)
+done1:
+    nop
+    jmp         finish
 
-drawEvenHLine:
-    ; even row, set color so upper nibble is zero
-    ; draw a line of color0 followed by color1
-    lda         colorEven0
-    ldy         screenLeft
-loopEvenA:
-    cpy         switchColorA
-    beq         nextEven
-    sta         (screenPtr0),y
-    iny
-    cpy         screenRight
-    bne         loopEvenA
-doneEven:
-    rts
-nextEven:
-    lda         colorEven1
-loopEvenB:
-    sta         (screenPtr0),y
-    iny
-    cpy         screenRight
-    beq         doneEven
-    cpy         switchColorB
-    bne         loopEvenB
-    lda         colorEven0
-    jmp         loopEvenB
-
-drawOddHLine:
-    ; assumes upper nibble on screen is zero
-    ; odd row: lower nibble of color 0 so can OR the upper nibble
-    ; draw a line of color0 followed by color1
-    lda         colorOdd0
-    ldy         screenLeft
-loopOddA:
-    cpy         switchColorA
-    beq         nextOdd
-    ora         (screenPtr0),y      ; OR in the upper nibble
-    sta         (screenPtr0),y
-    and         #$f0                ; restore color
-    iny
-    cpy         screenRight
-    bne         loopOddA
-doneOdd:
-    rts
-nextOdd:
-    lda         colorOdd1
-loopOddB:
-    ora         (screenPtr0),y      ; OR in the upper nibble
-    sta         (screenPtr0),y
-    and         #$f0                ; restore color
-    iny
-    cpy         screenRight
-    beq         doneOdd
-    cpy         switchColorB
-    bne         loopOddB
-    lda         colorOdd0
-    jmp         loopOddB
-
-drawVLine:
-    ; draw from mapRow to switchColorB (both in pixel row)
-    ; assumes minimum number of pixels from mapRow to switchColorB (3?)
-    ldy         mapCol
-    lda         switchColorB
-    lsr
-    sta         tempZP
-    lda         mapRow
-    lsr
-    tax
-    bcc         loopVert        ; if staring on an even row, skip top odd case
-
-    clc
-    lda         lineOffset,x
-    sta         screenPtr0
-    lda         linePage,x
-    adc         drawPage
-    sta         screenPtr1
-
-    ; draw bottom pixel
-    lda         (screenPtr0),y
-    and         #$0f            ; keep even pixel
-    ora         colorVert0
-    sta         (screenPtr0),y
-
-    inx
-    cpx         screenBottom
-    bne         loopVert
-doneVert:
-    rts                         ; done
-
-    ; loop through middle, 2 pixels at a time
-loopVert:
-    clc
-    lda         lineOffset,x
-    sta         screenPtr0
-    lda         linePage,x
-    adc         drawPage
-    sta         screenPtr1
-
-    lda         colorVert1
-    sta         (screenPtr0),y
-
-    inx
-    cpx         screenBottom
-    beq         doneVert
-    cpx         tempZP
-    bne         loopVert
-
-    ; draw final pixel(s)
-
-    clc
-    lda         lineOffset,x
-    sta         screenPtr0
-    lda         linePage,x
-    adc         drawPage
-    sta         screenPtr1
-
-    lda         switchColorB
-    lsr
-    bcs         bothV
-
-    ; just top pixel
-    lda         (screenPtr0),y
-    and         #$f0            ; keep odd pixel
-    ora         colorVert2
-    sta         (screenPtr0),y
-    rts
-
-    ; 2 pixels
-bothV:
-    lda         colorVert1
-    sta         (screenPtr0),y
-    rts
-
-mapRow:         .byte   0
-mapCol:         .byte   0
-
-screenTop:      .byte   0
-screenBottom:   .byte   20
-screenLeft:     .byte   0
-screenRight:    .byte   40
-switchColorA:   .byte   0
-switchColorB:   .byte   40
-
-colorEven0:     .byte   $05
-colorOdd0:      .byte   $50
-colorEven1:     .byte   $06
-colorOdd1:      .byte   $60
-
-colorVert0:     .byte   $60
-colorVert1:     .byte   $66
-colorVert2:     .byte   $06
-
-mapRowEvenA:    .byte   19,  8,   2,   11,  12,  5,   3,   14
-                .byte   7,   10,  4,   16,  16,  1,   0,   2
-                .byte   9,   5,   6,   16,  10,  2,   14,  12
-mapRowOddA:     .byte   15,  8,   7,   4,   11,  7,   4,   0
-                .byte   16,  5,   8,   10,  19,  14,  1,   19
-                .byte   3,   9,   12,  12,  11,  5,   10,  6
-mapRowEvenB:    .byte   20,  23,  29,  36,  26,  23,  29,  25
-                .byte   25,  37,  25,  25,  39,  40,  40,  22
-                .byte   33,  33,  23,  21,  21,  22,  35,  27
-mapRowOddB:     .byte   29,  29,  39,  33,  29,  32,  39,  38
-                .byte   31,  34,  24,  39,  20,  26,  28,  21
-                .byte   35,  22,  32,  31,  22,  40,  40,  24
-
-mapColA:        .byte   5,   6,   3,   3,   6,   5,   16,  18
-                .byte   18,  9,   15,  7,   6,   16,  8,   2
-                .byte   10,  2,   8,   3,   6,   0,   17,  4
-                .byte   11,  3,   6,   12,  6,   12,  2,   12
-                .byte   0,   15,  5,   15,  16,  13,  18,  18
-
-mapColB:        .byte   32,  37,  23,  38,  31,  25,  22,  36
-                .byte   32,  27,  38,  23,  24,  37,  33,  23
-                .byte   25,  24,  31,  32,  23,  25,  36,  24
-                .byte   33,  38,  27,  30,  31,  28,  30,  23
-                .byte   27,  22,  32,  36,  39,  29,  24,  26
 .endproc
+
+paddleX:        .byte       0
+paddleY:        .byte       0
 
 ;-----------------------------------------------------------------------------
 ; Lookup Tables

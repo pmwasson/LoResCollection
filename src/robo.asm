@@ -188,47 +188,10 @@ rowColor:       .res    24
 .align 128
 colColor:       .res    40*3
 
-
-
 ;-----------------------------------------------------------------------------
-; Read Joystick
-;   Read both paddles in a constant time routine
-;   (Not faster if value is lower, which messes up game loop timing)
-;   Range is $00 .. $6B (107) since sampled less often than PREAD
-;   Range measured on AppleWin, but assumed similar to real HW.
+; Libraries
 ;-----------------------------------------------------------------------------
-PADDLE_MAX      = $6B
-.align 64               ; For timing, make sure branches don't cross pages
 
-.proc readJoystick
-
-    lda         #0
-    sta         paddleX
-    sta         paddleY
-    sta         GCRESET
-    ldx         #PADDLE_MAX
-
-loop:
-    lda         GC0
-    bpl         done0
-    inc         paddleX
-read1:
-    lda         GC1         ; 4 cycles
-    bpl         done1       ; 2 cycles (+1 for taken)
-    inc         paddleY     ; 6 cycle
-finish:
-    dex
-    bne         loop
-    rts
-
-done0:                      ; +1 cycle for taken branch
-    nop                     ; +2
-    jmp         read1       ; +3 = 6 (same as inc above)
-done1:
-    nop
-    jmp         finish
-
-.endproc
-
-paddleX:        .byte       0
-paddleY:        .byte       0
+.include "inline_print.asm"
+.include "grlib.asm"
+.include "sound.asm"

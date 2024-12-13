@@ -78,8 +78,12 @@ COLLISION_BOTTOM_RIGHT  = %1100
     ;lda         #PLAYER_XOFFSET+2
     ;sta         curX
 
-    ldx         #SOUND_DEAD
+    ldx         #SOUND_WAKEUP
     jsr         playSound
+
+    lda         #FUEL_LEVEL_MAX
+    sta         fuelLevel
+    jsr         updateFuel
 
     ;----------------------------------
     ; Main Loop
@@ -105,11 +109,8 @@ switchTo1:
     ; Update
     ;---------------
 
-    jsr         updateFuel
-    ;jsr         updateParticles
-
-
     ; Gravity
+    clc
     lda         vecY0
     adc         #GRAVITY0
     sta         vecY0
@@ -124,18 +125,6 @@ switchTo1:
     sta         posY
     lda         vecY1
     adc         worldY
-    bpl         :+
-    lda         #0
-    sta         vecY0
-    sta         vecY1
-:
-    cmp         #POS_CHECK_BOTTOM
-    bcc         :+
-    lda         #0
-    sta         vecY0
-    sta         vecY1
-    lda         #POS_CHECK_BOTTOM
-:
     sta         worldY
 
     ; update player X
@@ -145,18 +134,6 @@ switchTo1:
     sta         posX
     lda         vecX1
     adc         worldX
-    bpl         :+
-    lda         #0
-    sta         vecX0
-    sta         vecX1
-:
-    cmp         #POS_CHECK_LEFT
-    bcc         :+
-    lda         #0
-    sta         vecX0
-    sta         vecX1
-    lda         #POS_CHECK_LEFT
-:
     sta         worldX
 
     ; Draw screen
@@ -192,61 +169,89 @@ switchTo1:
     ; Get input
     ;---------------
 
-    ldx         #0
-    jsr         PREAD
-    sty         mapPaddleX
-:
-    nop
-    iny
-    bne         :-              ; Add delay for small values to make constant
+    jsr         readJoystick        ; return value 0..107
 
+    lda         BUTTON0
+    bmi         doButton
+    jmp         getKey
+
+doButton:
+    lda         fuelLevel
+    bne         :+
+    jmp         getKey              ; no fuel
+:
+
+    jsr         decreaseFuel
+
+    ; quantize joystick
+    lda         paddleX
+    lsr
+    lsr
+    lsr
+    lsr                             ; 0..6
+    sta         paddleX
+
+    lda         paddleY
+    lsr
+    lsr
+    lsr
+    lsr                             ; 0..6
+    sta         paddleY
+
+    ldx         paddleX
+    clc
+    lda         vecX0
+    adc         thrustX0,x
+    sta         vecX0
+    lda         vecX1
+    adc         thrustX1,x
+    sta         vecX1
+    bmi         checkVecXNeg
+    beq         doPaddleY           ; if positive, upper vec must be zero
+    lda         #0
+    sta         vecX1
+    lda         #$ff
+    sta         vecX0               ; Max positive value
+    jmp         doPaddleY
+checkVecXNeg:
+    cmp         #$FF
+    beq         doPaddleY           ; if negative, upper vec must be -1
+    lda         #$ff
+    sta         vecX1
+    lda         #$00
+    sta         vecX0               ; max negative value
+
+doPaddleY:
+    ldx         paddleY
+    clc
+    lda         vecY0
+    adc         thrustY0,x
+    sta         vecY0
+    lda         vecY1
+    adc         thrustY1,x
+    sta         vecY1
+    bmi         checkVecYNeg
+    beq         donePaddle          ; if positive, upper vec must be zero
+    lda         #0
+    sta         vecY1
+    lda         #$ff
+    sta         vecY0               ; Max positive value
+    jmp         donePaddle
+checkVecYNeg:
+    cmp         #$FF
+    beq         donePaddle          ; if negative, upper vec must be -1
+    lda         #$ff
+    sta         vecY1
+    lda         #$00
+    sta         vecY0               ; max negative value
+donePaddle:
+
+getKey:
     lda         KBD
     bmi         :+
     jmp         loop
 :
     sta         KBDSTRB
-
-    cmp         #KEY_DOWN
-    bne         :+
-    lda         vecY0
-    adc         #THRUST_POS0
-    sta         vecY0
-    lda         vecY1
-    adc         #THRUST_POS1
-    sta         vecY1
-    jmp         loop
-:
-    cmp         #KEY_UP
-    bne         :+
-    clc
-    lda         vecY0
-    adc         #THRUST_NEG0
-    sta         vecY0
-    lda         vecY1
-    adc         #THRUST_NEG1
-    sta         vecY1
-    jmp         loop
-:
-    cmp         #KEY_RIGHT
-    bne         :+
-    lda         vecX0
-    adc         #THRUST_POS0
-    sta         vecX0
-    lda         vecX1
-    adc         #THRUST_POS1
-    sta         vecX1
-    jmp         loop
-:
-    cmp         #KEY_LEFT
-    bne         :+
-    lda         vecX0
-    adc         #THRUST_NEG0
-    sta         vecX0
-    lda         vecX1
-    adc         #THRUST_NEG1
-    sta         vecX1
-    jmp         loop
-:
 
     cmp         #KEY_ESC
     bne         :+
@@ -255,6 +260,11 @@ switchTo1:
 :
 
     jmp         loop
+;                                             --V--                 XX
+thrustX0:       .byte   256-20, 256-10, 256-5,  0,      5,  10, 20, 20
+thrustX1:       .byte   $ff,    $ff,    $ff,    0,      0,  0,  0,  0
+thrustY0:       .byte   256-25, 256-20, 256-15, 256-10, 5, 10,  15, 15   ; center = thrust up
+thrustY1:       .byte   $ff,    $ff,    $ff,    $ff,    0,  0,  0,  0
 
 .endproc
 
@@ -633,16 +643,11 @@ FUEL_COLOR_EMPTY        = $00
 FUEL_COLOR_GOOD         = $44
 FUEL_COLOR_WARN         = $DD
 FUEL_COLOR_LOW          = $99
-FUEL_MAX_CONSUMPTION    = 9
+FUEL_MAX_CONSUMPTION    = 10
 
 FUEL_LEVEL_MAX          = 39
 
-.proc updateFuel
-
-    lda         BUTTON0
-    bmi         decreaseFuel
-
-increaseFuel:
+.proc increaseFuel
     lda         fuelLevel
     cmp         #FUEL_LEVEL_MAX
     bcc         :+
@@ -654,21 +659,19 @@ increaseFuel:
     bne         :+
     ldx         #SOUND_CHARM
     jsr         playSound
-    ldx         fuelLevel
-    jmp         updateColors
+    jmp         updateFuel
 :
     ldx         #SOUND_REFUEL
     jsr         playSound
-    ldx         fuelLevel
-    jmp         updateColors
+    jmp         updateFuel
+.endproc
 
-decreaseFuel:
+.proc decreaseFuel
 
     lda         fuelLevel
     bne         :+
     rts                                 ; already empty
 :
-
     ldx         #SOUND_ENGINE
     jsr         playSound
 
@@ -678,7 +681,6 @@ decreaseFuel:
     bcs         :+
     rts
 :
-
     lda         #0
     sta         consumption
     ldx         fuelLevel
@@ -687,21 +689,24 @@ decreaseFuel:
     dex
     stx         fuelLevel
     bne         :+
-
     ldx         #SOUND_DEAD
     jsr         playSound
     rts                                 ; hit empty
 :
-updateColors:
+    jmp         updateFuel
+
+consumption:    .byte       0
+
+.endproc
+
+.proc updateFuel
+    ldx         fuelLevel
     lda         fuelStatusColor,x
 fuelLoop:
     sta         fuelColor,x
     dex
     bne         fuelLoop
     rts
-
-fuelLevel:          .byte       0
-consumption:        .byte       0
 
 ; 40 values
 fuelStatusColor:
@@ -830,6 +835,7 @@ vecX1:              .byte   0   ; should only be 00 or FF (max value +/-1)
 vecY0:              .byte   0
 vecY1:              .byte   0
 collisionResult:    .byte   0
+fuelLevel:          .byte   FUEL_LEVEL_MAX
 
 shipColor0:         .byte   PLAYER_COLOR0
 shipColor1:         .byte   PLAYER_COLOR1
@@ -1046,11 +1052,11 @@ map:
     .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
     .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
     .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XC3,XC2,XSW,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX
-    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XNE,XXX,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
-    .byte   XXX,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XNE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XNW,XNE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XR2,XSW,XSE,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
+    .byte   XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
     .byte   XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
     .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
     .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX
@@ -1058,5 +1064,6 @@ map:
     .byte   XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XF1,XF2,XF1,XF3,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX
     .byte   XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,XF3,XF2,XL1,XXX,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX
     .byte   XXX,XXX,XR1,X__,X__,X__,XF1,XF2,XF1,XNE,XNW,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XR1,XF2,XF3,XF1,XF1,XF2,XF1,XNW,XXX,XXX,XXX,XXX,XXX,XXX
+    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
     .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
     .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
