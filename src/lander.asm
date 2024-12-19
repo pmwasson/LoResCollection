@@ -21,7 +21,7 @@ tileShiftInit           :=  tempZP
 tileShiftRemainder      :=  temp2ZP
 
 START_PLAYER_X          =  5
-START_PLAYER_Y          =  12
+START_PLAYER_Y          =  $60
 MAP_SCREEN_LEFT         =  2
 MAP_SCREEN_RIGHT        =  36
 MAP_SCREEN_TOP          =  4        ; Must be /2
@@ -40,7 +40,7 @@ COLLISION_BOTTOM_RIGHT  = %1100
 .proc main
 
     ;----------------------------------
-    ; Init demo
+    ; Init game
     ;----------------------------------
     jsr         HOME        ; clear screen
     jsr         GR          ; set low-res graphics mode
@@ -72,9 +72,8 @@ COLLISION_BOTTOM_RIGHT  = %1100
     ldx         #SOUND_WAKEUP
     jsr         playSound
 
-    lda         #FUEL_LEVEL_MAX
+    lda         #0
     sta         fuelLevel
-    jsr         updateFuel
 
     lda         #0
     sta         posX
