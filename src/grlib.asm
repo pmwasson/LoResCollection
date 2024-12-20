@@ -587,6 +587,10 @@ loopX:
     adc         shapeWidth
     sta         tilePtr0
 
+    lda         maskPtr0
+    adc         shapeWidth
+    sta         maskPtr0
+
     inc         tempZP          ; next line
 
     dex

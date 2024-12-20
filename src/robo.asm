@@ -35,8 +35,40 @@ clear:
     ; clear screen
     jsr         clearScreenWithEffect
 
+    lda         #10
+    sta         tileX
+    lda         #10
+    sta         tileY
+    lda         #<shapeSpider1
+    sta         tilePtr0
+    lda         #>shapeSpider1
+    sta         tilePtr1
+    lda         #<shapeSpider1Mask
+    sta         maskPtr0
+    lda         #>shapeSpider1Mask
+    sta         maskPtr1
+    jsr         drawMaskedShape
+
+    lda         #20
+    sta         tileX
+    lda         #10
+    sta         tileY
+    lda         #<shapeSpider2
+    sta         tilePtr0
+    lda         #>shapeSpider2
+    sta         tilePtr1
+    lda         #<shapeSpider2Mask
+    sta         maskPtr0
+    lda         #>shapeSpider2Mask
+    sta         maskPtr1
+    jsr         drawMaskedShape
+
     jsr         readJoystick
     jsr         updateEffect
+
+:
+    lda         BUTTON0
+    bmi         :-
 
     jmp         loop
 
@@ -163,6 +195,8 @@ loop0:
     bmi         :+
     jmp         loop0
 :
+    lda         #0
+    sta         drawPage        ; draw on cleared page
     rts
 
 clear1:
@@ -179,6 +213,10 @@ loop1:
     sta         $B80,x
     dex
     bpl         loop1
+
+    lda         #4
+    sta         drawPage        ; draw on cleared page
+
     rts
 .endproc
 
@@ -195,3 +233,57 @@ colColor:       .res    40*3
 .include "inline_print.asm"
 .include "grlib.asm"
 .include "sound.asm"
+
+;-----------------------------------------------------------------------------
+; Shapes
+;-----------------------------------------------------------------------------
+
+.align 256
+
+shapeSpider1:
+    .byte   8,8,8*8/2   ; 8x8
+    ; even
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $90, $33, $33, $90, $00, $00
+    .byte   $88, $08, $89, $93, $93, $89, $08, $88
+    .byte   $08, $00, $08, $00, $00, $08, $00, $08
+    ; odd
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $30, $30, $00, $00, $00
+    .byte   $80, $80, $99, $33, $33, $99, $80, $80
+    .byte   $88, $00, $88, $09, $09, $88, $00, $88
+shapeSpider1Mask:
+    ; mask even
+    .byte   $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+    .byte   $FF, $FF, $0F, $00, $00, $0F, $FF, $FF
+    .byte   $00, $F0, $00, $00, $00, $00, $F0, $00
+    .byte   $F0, $FF, $F0, $FF, $FF, $F0, $FF, $F0
+    ; mask odd
+    .byte   $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+    .byte   $FF, $FF, $FF, $0F, $0F, $FF, $FF, $FF
+    .byte   $0F, $0F, $00, $00, $00, $00, $0F, $0F
+    .byte   $00, $FF, $00, $F0, $F0, $00, $FF, $00
+
+shapeSpider2:
+    .byte   8,8,8*8/2   ; 8x8
+    ; even
+    .byte   $00, $00, $00, $30, $30, $00, $00, $00
+    .byte   $00, $80, $99, $33, $33, $99, $80, $00
+    .byte   $88, $00, $80, $09, $09, $80, $00, $88
+    .byte   $08, $00, $08, $00, $00, $08, $00, $08
+    ; odd
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $90, $33, $33, $90, $00, $00
+    .byte   $80, $08, $09, $93, $93, $09, $08, $80
+    .byte   $88, $00, $88, $00, $00, $88, $00, $88
+shapeSpider2Mask:
+    ; mask even
+    .byte   $FF, $FF, $FF, $0F, $0F, $FF, $FF, $FF
+    .byte   $FF, $0F, $00, $00, $00, $00, $0F, $FF
+    .byte   $00, $FF, $0F, $F0, $F0, $0F, $FF, $00
+    .byte   $F0, $FF, $F0, $FF, $FF, $F0, $FF, $F0
+    ; mask odd
+    .byte   $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+    .byte   $FF, $FF, $0F, $00, $00, $0F, $FF, $FF
+    .byte   $0F, $F0, $F0, $00, $00, $F0, $F0, $0F
+    .byte   $00, $FF, $00, $FF, $FF, $00, $FF, $00
