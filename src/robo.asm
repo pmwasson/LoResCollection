@@ -35,47 +35,69 @@ clear:
     ; clear screen
     jsr         clearScreenWithEffect
 
-    lda         #10
+    ldx         #0
+    stx         shapeIndex
+
+shapeLoop:
+    ldx         shapeIndex
+    lda         shapeList,x
+    bmi         doneShapeLoop
     sta         tileX
-    lda         #10
+    lda         shapeList+1,x
     sta         tileY
-    lda         #<shapeSpider1
+
+    lda         shapeList+2,x
+    sta         shapeWidth
+    lda         shapeList+3,x
+    sta         shapeHeightBytes
+    lda         shapeList+4,x
+    sta         shapeOffset
+
+    lda         shapeList+5,x
     sta         tilePtr0
-    lda         #>shapeSpider1
+    lda         shapeList+6,x
     sta         tilePtr1
-    lda         #<shapeSpider1Mask
+    lda         shapeList+7,x
     sta         maskPtr0
-    lda         #>shapeSpider1Mask
+    lda         shapeList+8,x
     sta         maskPtr1
+
     jsr         drawMaskedShape
 
-    lda         #20
-    sta         tileX
-    lda         #10
-    sta         tileY
-    lda         #<shapeSpider2
-    sta         tilePtr0
-    lda         #>shapeSpider2
-    sta         tilePtr1
-    lda         #<shapeSpider2Mask
-    sta         maskPtr0
-    lda         #>shapeSpider2Mask
-    sta         maskPtr1
-    jsr         drawMaskedShape
+    clc
+    lda         shapeIndex
+    adc         #9
+    sta         shapeIndex
+    jmp         shapeLoop
+doneShapeLoop:
 
     jsr         readJoystick
+    jsr         updatePlayer
     jsr         updateEffect
 
-:
-    lda         BUTTON0
-    bmi         :-
-
     jmp         loop
+
+shapeIndex:     .byte   0
+
+shapeList:
+
+    .byte       8,10,   8,4,32
+    .word       shapeSpider1,shapeSpider1Mask
+
+    .byte       22,10,  8,4,32
+    .word       shapeSpider2,shapeSpider2Mask
+
+    .byte       255
 
 .endproc
 
 
 .proc updateEffect
+
+
+    rts         ; DISABLED
+
+
     ; clear previous
     lda         #0
     ldx         prevRow
@@ -84,6 +106,7 @@ clear:
     sta         colColor,x
     sta         colColor+40,x
     sta         colColor+80,x
+
 
     ldx         paddleX
     lda         paddleColTable,x
@@ -126,6 +149,141 @@ paddleColTable:
     .byte       20,20,21,21,21,22,22,23,23,23,24,24,25,25,25,26,26,27,27,27,28,28,29,29,29      ; 25
     .byte       30,30,31,31,31,32,32,33,33,33,34,34,35,35,35,36,36,37,37,37,38,38,39,39,39      ; 25
     .byte       39,39,39,39                                                                     ; 4  = 108
+.endproc
+
+;-----------------------------------------------------------------------------
+; Update Player
+;
+;   Use joystick result to set player direction and arm
+;
+;-----------------------------------------------------------------------------
+.proc updatePlayer
+
+    ; calculate direction
+
+    lda         paddleX
+    clc
+    adc         #10
+    and         #%01100000
+    lsr
+    lsr
+    lsr
+    lsr
+    lsr
+    sta         tempZP
+
+    lda         paddleY
+    adc         #10
+    and         #%01100000
+    lsr
+    lsr
+    lsr
+    adc         tempZP
+    tax
+    lda         joystickActiveTable,x
+    beq         :+                      ; if joystick centered, don't update body position (or arm)
+    stx         bodyDirection
+    lda         BUTTON0
+    bmi         :+                      ; if button pressed, don't update arm position
+    stx         armDirection
+:
+
+    ; draw player
+    lda         playerX
+    sta         tileX
+    lda         playerY
+    sta         tileY
+    lda         #playerWidth
+    sta         shapeWidth
+    lda         #playerHeightBytes
+    sta         shapeHeightBytes
+    lda         #playerWidth*playerHeightBytes
+    sta         shapeOffset
+
+    lda         bodyDirection
+    and         #%10
+    beq         faceLeft
+
+faceRight:
+    lda         #<playerRight
+    sta         tilePtr0
+    lda         #>playerRight
+    sta         tilePtr1
+    lda         #<playerRightMask
+    sta         maskPtr0
+    lda         #>playerRightMask
+    sta         maskPtr1
+    jmp         drawPlayer
+
+faceLeft:
+    lda         #<playerLeft
+    sta         tilePtr0
+    lda         #>playerLeft
+    sta         tilePtr1
+    lda         #<playerLeftMask
+    sta         maskPtr0
+    lda         #>playerLeftMask
+    sta         maskPtr1
+
+drawPlayer:
+    jsr         drawMaskedShape
+
+    ; draw arm
+    lda         playerX
+    sta         tileX
+    lda         playerY
+    clc
+    adc         #3
+    sta         tileY
+    lda         #armWidth
+    sta         shapeWidth
+    lda         #armHeightBytes
+    sta         shapeHeightBytes
+    lda         #armWidth*armHeightBytes
+    sta         shapeOffset
+
+    ldx         armDirection
+    lda         armShapeTable0,x
+    sta         tilePtr0
+    lda         armShapeTable1,x
+    sta         tilePtr1
+    lda         armShapeMaskTable0,x
+    sta         maskPtr0
+    lda         armShapeMaskTable1,x
+    sta         maskPtr1
+    jsr         drawMaskedShape
+    rts
+
+joystickActiveTable:
+    .byte       1,1,1,1
+    .byte       1,0,0,1
+    .byte       1,0,0,1
+    .byte       1,1,1,1
+
+armShapeTable0:
+    .byte       <armUpL, <armUp, <armUp, <armUpR
+    .byte       <armL,   <armL,  <armR,  <armR
+    .byte       <armL,   <armL,  <armR,  <armR
+    .byte       <armDnL, <armDn, <armDn, <armDnR
+
+armShapeTable1:
+    .byte       >armUpL, >armUp, >armUp, >armUpR
+    .byte       >armL,   >armL,  >armR,  >armR
+    .byte       >armL,   >armL,  >armR,  >armR
+    .byte       >armDnL, >armDn, >armDn, >armDnR
+
+armShapeMaskTable0:
+    .byte       <armUpLMask, <armUpMask, <armUpMask, <armUpRMask
+    .byte       <armLMask,   <armLMask,  <armRMask,  <armRMask
+    .byte       <armLMask,   <armLMask,  <armRMask,  <armRMask
+    .byte       <armDnLMask, <armDnMask, <armDnMask, <armDnRMask
+
+armShapeMaskTable1:
+    .byte       >armUpLMask, >armUpMask, >armUpMask, >armUpRMask
+    .byte       >armLMask,   >armLMask,  >armRMask,  >armRMask
+    .byte       >armLMask,   >armLMask,  >armRMask,  >armRMask
+    .byte       >armDnLMask, >armDnMask, >armDnMask, >armDnRMask
+
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -226,6 +384,16 @@ rowColor:       .res    24
 .align 128
 colColor:       .res    40*3
 
+
+;-----------------------------------------------------------------------------
+; Globals
+;-----------------------------------------------------------------------------
+
+playerX:        .byte   20
+playerY:        .byte   20
+bodyDirection:  .byte   7
+armDirection:   .byte   7
+
 ;-----------------------------------------------------------------------------
 ; Libraries
 ;-----------------------------------------------------------------------------
@@ -240,8 +408,182 @@ colColor:       .res    40*3
 
 .align 256
 
-shapeSpider1:
-    .byte   8,8,8*8/2   ; 8x8
+playerWidth         = 3
+playerHeightBytes   = 5
+
+playerRight:     ; 3x5
+    ; even
+    .byte   $00, $F0, $F0
+    .byte   $00, $FF, $0F
+    .byte   $00, $FF, $00
+    .byte   $00, $FF, $F0
+    .byte   $00, $00, $00
+    ; odd
+    .byte   $00, $00, $00
+    .byte   $00, $FF, $FF
+    .byte   $00, $FF, $00
+    .byte   $00, $FF, $00
+    .byte   $00, $0F, $0F
+playerRightMask:
+    ; mask even
+    .byte   $FF, $0F, $0F
+    .byte   $FF, $00, $F0
+    .byte   $FF, $00, $FF
+    .byte   $FF, $00, $0F
+    .byte   $FF, $FF, $FF
+    ; mask odd
+    .byte   $FF, $FF, $FF
+    .byte   $FF, $00, $00
+    .byte   $FF, $00, $FF
+    .byte   $FF, $00, $FF
+    .byte   $FF, $F0, $F0
+
+playerLeft:     ; 3x5
+    ; even
+    .byte   $F0, $F0, $00
+    .byte   $0F, $FF, $00
+    .byte   $00, $FF, $00
+    .byte   $F0, $FF, $00
+    .byte   $00, $00, $00
+    ; odd
+    .byte   $00, $00, $00
+    .byte   $FF, $FF, $00
+    .byte   $00, $FF, $00
+    .byte   $00, $FF, $00
+    .byte   $0F, $0F, $00
+playerLeftMask:
+    ; mask even
+    .byte   $0F, $0F, $FF
+    .byte   $F0, $00, $FF
+    .byte   $FF, $00, $FF
+    .byte   $0F, $00, $FF
+    .byte   $FF, $FF, $FF
+    ; mask odd
+    .byte   $FF, $FF, $FF
+    .byte   $00, $00, $FF
+    .byte   $FF, $00, $FF
+    .byte   $FF, $00, $FF
+    .byte   $F0, $F0, $FF
+
+.align 256
+
+armWidth            = 3
+armHeightBytes      = 2
+
+armUp:      ; even
+            .byte   $00, $55, $00
+            .byte   $00, $00, $00
+            ; odd
+            .byte   $00, $50, $00
+            .byte   $00, $05, $00
+
+armUpR:     ; even
+            .byte   $00, $50, $05
+            .byte   $00, $00, $00
+            ; odd
+            .byte   $00, $00, $50
+            .byte   $00, $05, $00
+
+armR:       ; even
+            .byte   $00, $50, $50
+            .byte   $00, $00, $00
+            ; odd
+            .byte   $00, $00, $00
+            .byte   $00, $05, $05
+
+armDnR:     ; even
+            .byte   $00, $50, $00
+            .byte   $00, $00, $05
+            ; odd
+            .byte   $00, $00, $00
+            .byte   $00, $05, $50
+
+armDn:      ; even
+            .byte   $00, $50, $00
+            .byte   $00, $05, $00
+            ; odd
+            .byte   $00, $00, $00
+            .byte   $00, $55, $00
+
+armDnL:     ; even
+            .byte   $00, $50, $00
+            .byte   $05, $00, $00
+            ; odd
+            .byte   $00, $00, $00
+            .byte   $50, $05, $00
+
+armL:       ; even
+            .byte   $50, $50, $00
+            .byte   $00, $00, $00
+            ; odd
+            .byte   $00, $00, $00
+            .byte   $05, $05, $00
+
+armUpL:     ; even
+            .byte   $05, $50, $00
+            .byte   $00, $00, $00
+            ; odd
+            .byte   $50, $00, $00
+            .byte   $00, $05, $00
+
+armUpMask:  ; even
+            .byte   $FF, $00, $FF
+            .byte   $FF, $FF, $FF
+            ; odd
+            .byte   $FF, $0F, $FF
+            .byte   $FF, $F0, $FF
+
+armUpRMask: ; even
+            .byte   $FF, $0F, $F0
+            .byte   $FF, $FF, $FF
+            ; odd
+            .byte   $FF, $FF, $0F
+            .byte   $FF, $F0, $FF
+
+armRMask:   ; even
+            .byte   $FF, $0F, $0F
+            .byte   $FF, $FF, $FF
+            ; odd
+            .byte   $FF, $FF, $FF
+            .byte   $FF, $F0, $F0
+
+armDnRMask: ; even
+            .byte   $FF, $0F, $FF
+            .byte   $FF, $FF, $F0
+            ; odd
+            .byte   $FF, $FF, $FF
+            .byte   $FF, $F0, $0F
+
+armDnMask:  ; even
+            .byte   $FF, $0F, $FF
+            .byte   $FF, $F0, $FF
+            ; odd
+            .byte   $FF, $FF, $FF
+            .byte   $FF, $00, $FF
+
+armDnLMask: ; even
+            .byte   $FF, $0F, $FF
+            .byte   $F0, $FF, $FF
+            ; odd
+            .byte   $FF, $FF, $FF
+            .byte   $0F, $F0, $FF
+
+armLMask:   ; even
+            .byte   $0F, $0F, $FF
+            .byte   $FF, $FF, $FF
+            ; odd
+            .byte   $FF, $FF, $FF
+            .byte   $F0, $F0, $FF
+
+armUpLMask: ; even
+            .byte   $F0, $0F, $FF
+            .byte   $FF, $FF, $FF
+            ; odd
+            .byte   $0F, $FF, $FF
+            .byte   $FF, $F0, $FF
+
+.align 256
+shapeSpider1:   ; 8x8
     ; even
     .byte   $00, $00, $00, $00, $00, $00, $00, $00
     .byte   $00, $00, $90, $33, $33, $90, $00, $00
@@ -264,8 +606,7 @@ shapeSpider1Mask:
     .byte   $0F, $0F, $00, $00, $00, $00, $0F, $0F
     .byte   $00, $FF, $00, $F0, $F0, $00, $FF, $00
 
-shapeSpider2:
-    .byte   8,8,8*8/2   ; 8x8
+shapeSpider2:   ; 8x8
     ; even
     .byte   $00, $00, $00, $30, $30, $00, $00, $00
     .byte   $00, $80, $99, $33, $33, $99, $80, $00

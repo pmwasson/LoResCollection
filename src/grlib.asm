@@ -4,6 +4,10 @@
 ; GR Lib
 ; Collection of lo-res graphic routines
 
+shapeWidth          :=  $fc
+shapeHeightBytes    :=  $fd
+shapeOffset         :=  $ec
+
 ;-----------------------------------------------------------------------------
 ; Wait
 ;   Interruptable delay
@@ -423,10 +427,7 @@ loopLast:
 
     rts
 
-shapeWidth:         .byte       0
 shapeHeight:        .byte       0
-shapeHeightBytes:   .byte       0
-shapeOffset:        .byte       0
 shapeMaskLast:      .byte       0
 
 .endProc
@@ -508,7 +509,6 @@ loopLast:
 done:
     rts
 
-shapeWidth:         .byte       0
 shapeHeight:        .byte       0
 
 .endProc
@@ -516,7 +516,8 @@ shapeHeight:        .byte       0
 ;-----------------------------------------------------------------------------
 ; Draw Masked shape -- draw lores masked shape starting at any x,y
 ;
-;  tileX, tileY and tilePtr and maskPtr must be set before calling
+;   tileX, tileY, shapeWidth, shapeHeightBytes, shapeOffset, tilePtr
+;       and maskPtr must be set before calling
 ;
 ;  tileX, tileY are pixel coordinates.
 ;
@@ -537,21 +538,6 @@ shapeHeight:        .byte       0
 ;-----------------------------------------------------------------------------
 
 .proc drawMaskedShape
-
-    ldy         #0
-    lda         (tilePtr0),y
-    sta         shapeWidth
-    inc         tilePtr0
-
-    lda         (tilePtr0),y
-    sta         shapeHeight
-    lsr
-    sta         shapeHeightBytes
-    inc         tilePtr0
-
-    lda         (tilePtr0),y
-    sta         shapeOffset
-    inc         tilePtr0
 
     ; check for odd
     lda         tileY
@@ -598,12 +584,8 @@ loopX:
 
     rts                         ; Done
 
-shapeWidth:         .byte       0
-shapeHeight:        .byte       0
-shapeHeightBytes:   .byte       0
-shapeOffset:        .byte       0
-
 .endProc
+
 ;-----------------------------------------------------------------------------
 ; shiftBox - shift pixels in a box to the left
 ;   Parameters:
