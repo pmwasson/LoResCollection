@@ -12,6 +12,11 @@
 .segment "CODE"
 .org    $2000
 
+SCREEN_TOP      = 0
+SCREEN_BOTTOM   = 47
+SCREEN_LEFT     = 0
+SCREEN_RIGHT    = 39
+
 .proc main
 
     ;----------------------------------
@@ -73,6 +78,8 @@ doneShapeLoop:
 
     jsr         readJoystick
     jsr         updatePlayer
+    jsr         shootBullet
+    jsr         updateBullet
     jsr         updateEffect
 
     jmp         loop
@@ -150,6 +157,187 @@ paddleColTable:
     .byte       30,30,31,31,31,32,32,33,33,33,34,34,35,35,35,36,36,37,37,37,38,38,39,39,39      ; 25
     .byte       39,39,39,39                                                                     ; 4  = 108
 .endproc
+
+
+;-----------------------------------------------------------------------------
+; Update Bullet
+;
+;-----------------------------------------------------------------------------
+.proc updateBullet
+
+    lda         #0
+    sta         index
+
+loop:
+    tax
+
+    lda         bulletTable+1,x         ;x1
+    bmi         next
+
+    clc
+    lda         bulletTable+0,x
+    adc         bulletTable+4,x
+    sta         bulletTable+0,x
+
+    lda         bulletTable+1,x
+    adc         bulletTable+5,x
+    sta         bulletTable+1,x
+    sta         curX
+
+    cmp         #SCREEN_LEFT
+    beq         invalidate
+    cmp         #SCREEN_RIGHT
+    beq         invalidate
+
+    clc
+    lda         bulletTable+2,x
+    adc         bulletTable+6,x
+    sta         bulletTable+2,x
+
+    lda         bulletTable+3,x
+    adc         bulletTable+7,x
+    sta         bulletTable+3,x
+    sta         curY
+
+    cmp         #SCREEN_TOP
+    beq         invalidate
+    cmp         #SCREEN_BOTTOM
+    beq         invalidate
+
+    lda         bulletTable+8,x     ;color
+    jsr         drawDot
+
+next:
+    lda         index
+    clc
+    adc         #BULLET_ENTRY_SIZE
+    sta         index
+    cmp         #BULLET_TABLE_SIZE
+    bne         loop
+    rts
+
+invalidate:
+    lda         #$FF
+    sta         bulletTable+1,x
+    jmp         next
+
+index:          .byte   0
+.endproc
+
+.proc shootBullet
+    lda         cooldown
+    beq         :+
+    dec         cooldown
+    rts
+:
+    lda         BUTTON0
+    bmi         :+
+    rts
+:
+    ldx         allocateIndex
+    ldy         armDirection
+
+    lda         #$80
+    sta         bulletTable+0,x     ; x0
+    sta         bulletTable+2,x     ; y0
+    clc
+    lda         playerX
+    adc         bulletXOffset,y
+    sta         bulletTable+1,x     ; x1
+    lda         playerY
+    adc         bulletYOffset,y
+    sta         bulletTable+3,x     ; y1
+
+    lda         bulletVecX0Table,y
+    sta         bulletTable+4,x     ; vx0
+    lda         bulletVecX1Table,y
+    sta         bulletTable+5,x     ; vx1
+    lda         bulletVecY0Table,y
+    sta         bulletTable+6,x     ; vy0
+    lda         bulletVecY1Table,y
+    sta         bulletTable+7,x     ; vy1
+
+    lda         #$dd
+    sta         bulletTable+8,x     ; color
+
+    lda         allocateIndex
+    adc         #BULLET_ENTRY_SIZE
+    cmp         #BULLET_TABLE_SIZE
+    bne         :+
+    lda         #0
+:
+    sta         allocateIndex
+    lda         #20
+    sta         cooldown
+    rts
+
+allocateIndex:  .byte   0
+cooldown:       .byte   0
+
+.endproc
+
+
+bulletXOffset:
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+
+bulletYOffset:
+    .byte       $03, $03, $03, $03
+    .byte       $04, $04, $04, $04
+    .byte       $04, $04, $04, $04
+    .byte       $05, $05, $05, $05
+
+bulletVecX0Table:
+    .byte       $D3, $00, $00, $2D
+    .byte       $C0, $00, $00, $40
+    .byte       $C0, $00, $00, $40
+    .byte       $D3, $00, $00, $2D
+
+bulletVecX1Table:
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+
+bulletVecY0Table:
+    .byte       $D3, $C0, $C0, $C0
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+    .byte       $2D, $40, $40, $2D
+
+bulletVecY1Table:
+    .byte       $FF, $FF, $FF, $FF
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+
+; Bullet Data
+; 0: x0
+; 1: x1
+; 2: y0
+; 3: y1
+; 4: vx0
+; 5: vx1
+; 6: vy0
+; 7: vy1
+; 8: color
+BULLET_ENTRY_SIZE = 9
+BULLET_TABLE_SIZE = 8*BULLET_ENTRY_SIZE
+bulletTable:
+;    .byte   0,20,  0,23,  $40,$00,  $00,$00,  $dd   ; right
+;    .byte   0,20,  0,23,  $00,$00,  $40,$00,  $dd   ; down
+;    .byte   0,20,  0,23,  $C0,$FF,  $00,$00,  $dd   ; left
+;    .byte   0,20,  0,23,  $00,$00,  $C0,$FF,  $dd   ; up
+;    .byte   0,20,  0,23,  $2D,$00,  $2D,$00,  $dd   ; down-right
+;    .byte   0,20,  0,23,  $D3,$FF,  $2D,$00,  $dd   ; down-left
+;    .byte   0,20,  0,23,  $2D,$00,  $D3,$FF,  $dd   ; up-right
+;    .byte   0,20,  0,23,  $D3,$FF,  $D3,$FF,  $dd   ; up-left
+   .res    BULLET_TABLE_SIZE,255
+
+
+
 
 ;-----------------------------------------------------------------------------
 ; Update Player
