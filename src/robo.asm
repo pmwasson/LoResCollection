@@ -12,10 +12,10 @@
 .segment "CODE"
 .org    $2000
 
-SCREEN_TOP      = 0
-SCREEN_BOTTOM   = 47
-SCREEN_LEFT     = 0
-SCREEN_RIGHT    = 39
+SCREEN_TOP      = 1
+SCREEN_BOTTOM   = 46
+SCREEN_LEFT     = 1
+SCREEN_RIGHT    = 38
 
 .proc main
 
@@ -27,6 +27,9 @@ SCREEN_RIGHT    = 39
     sta         MIXCLR      ; full screen
     bit         HISCR       ; Display page2 so switch to page1
 
+    ldx         #SOUND_WAKEUP
+    jsr         playSound
+
 loop:
     ; flip page
     lda         PAGE2
@@ -37,8 +40,10 @@ loop:
     bit         LOWSCR
 
 clear:
+    jsr         updateSound
     ; clear screen
     jsr         clearScreenWithEffect
+    jsr         updateSound
 
     ldx         #0
     stx         shapeIndex
@@ -267,8 +272,11 @@ index:          .byte   0
     lda         #0
 :
     sta         allocateIndex
-    lda         #20
+    lda         #25
     sta         cooldown
+
+    ldx         #SOUND_BUMP
+    jsr         playSound
     rts
 
 allocateIndex:  .byte   0
