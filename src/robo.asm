@@ -12,6 +12,12 @@
 .segment "CODE"
 .org    $2000
 
+MOVEMENT_SPEED  = 9         ; how often you can move  (larger = slower)
+SHOOT_SPEED     = 19        ; how often you can shoot (larger = slower)
+
+BORDER_COLOR0   = $05
+BORDER_COLOR1   = $50
+BG_COLOR        = $77
 SCREEN_TOP      = 1
 SCREEN_BOTTOM   = 46
 SCREEN_LEFT     = 1
@@ -26,6 +32,17 @@ SCREEN_RIGHT    = 38
     jsr         GR          ; set low-res graphics mode
     sta         MIXCLR      ; full screen
     bit         HISCR       ; Display page2 so switch to page1
+
+    lda         #BORDER_COLOR0
+    sta         bg0
+    lda         #BORDER_COLOR1
+    sta         bg1
+    lda         #0
+    sta         drawPage
+    jsr         clearScreen
+    lda         #4
+    sta         drawPage
+    jsr         clearScreen
 
     ldx         #SOUND_WAKEUP
     jsr         playSound
@@ -42,7 +59,7 @@ loop:
 clear:
     jsr         updateSound
     ; clear screen
-    jsr         clearScreenWithEffect
+    jsr         clearPartialScreen
     jsr         updateSound
 
     ldx         #0
@@ -80,9 +97,8 @@ shapeLoop:
     sta         shapeIndex
     jmp         shapeLoop
 doneShapeLoop:
-
-    jsr         readJoystick
     jsr         updatePlayer
+    jsr         drawPlayer
     jsr         shootBullet
     jsr         updateBullet
     jsr         updateEffect
@@ -272,7 +288,7 @@ index:          .byte   0
     lda         #0
 :
     sta         allocateIndex
-    lda         #25
+    lda         #SHOOT_SPEED
     sta         cooldown
 
     ldx         #SOUND_BUMP
@@ -280,7 +296,7 @@ index:          .byte   0
     rts
 
 allocateIndex:  .byte   0
-cooldown:       .byte   0
+cooldown:       .byte   SHOOT_SPEED
 
 .endproc
 
@@ -354,9 +370,20 @@ bulletTable:
 ;
 ;-----------------------------------------------------------------------------
 .proc updatePlayer
+    lda         cooldown
+    beq         update
+    dec         cooldown
+    beq         read
+    rts
+read:
+    jsr         readJoystick
+    rts
+
+update:
+    lda         #MOVEMENT_SPEED
+    sta         cooldown        ; reset cooldown
 
     ; calculate direction
-
     lda         paddleX
     clc
     adc         #10
@@ -377,14 +404,78 @@ bulletTable:
     adc         tempZP
     tax
     lda         joystickActiveTable,x
-    beq         :+                      ; if joystick centered, don't update body position (or arm)
+    bne         :+                      ; if joystick centered, don't update body position (or arm)
+    rts
+:
     stx         bodyDirection
     lda         BUTTON0
     bmi         :+                      ; if button pressed, don't update arm position
     stx         armDirection
 :
 
-    ; draw player
+    sta         SPEAKER
+
+    clc
+    lda         playerX
+    adc         moveX,x
+    sta         playerX
+
+    cmp         #SCREEN_LEFT
+    bne         :+
+    inc         playerX
+:
+    cmp         #SCREEN_RIGHT-2
+    bne         :+
+    dec         playerX
+:
+
+    clc
+    lda         playerY
+    adc         moveY,x
+    sta         playerY
+
+    cmp         #SCREEN_TOP-1
+    bne         :+
+    inc         playerY
+:
+    cmp         #SCREEN_BOTTOM-7
+    bne         :+
+    dec         playerY
+:
+
+
+    rts
+
+
+cooldown:           .byte       MOVEMENT_SPEED
+
+joystickActiveTable:
+    .byte       1,1,1,1
+    .byte       1,0,0,1
+    .byte       1,0,0,1
+    .byte       1,1,1,1
+
+moveX:
+    .byte       $FF,$00,$00,$01
+    .byte       $FF,$00,$00,$01
+    .byte       $FF,$00,$00,$01
+    .byte       $FF,$00,$00,$01
+
+moveY:
+    .byte       $FF,$FF,$FF,$FF
+    .byte       $00,$00,$00,$00
+    .byte       $00,$00,$00,$00
+    .byte       $01,$01,$01,$01
+
+.endproc
+
+;-----------------------------------------------------------------------------
+; Draw Player
+;
+;   Draw player on screen
+;
+;-----------------------------------------------------------------------------
+.proc drawPlayer
     lda         playerX
     sta         tileX
     lda         playerY
@@ -409,7 +500,7 @@ faceRight:
     sta         maskPtr0
     lda         #>playerRightMask
     sta         maskPtr1
-    jmp         drawPlayer
+    jmp         draw
 
 faceLeft:
     lda         #<playerLeft
@@ -421,7 +512,7 @@ faceLeft:
     lda         #>playerLeftMask
     sta         maskPtr1
 
-drawPlayer:
+draw:
     jsr         drawMaskedShape
 
     ; draw arm
@@ -450,12 +541,6 @@ drawPlayer:
     jsr         drawMaskedShape
     rts
 
-joystickActiveTable:
-    .byte       1,1,1,1
-    .byte       1,0,0,1
-    .byte       1,0,0,1
-    .byte       1,1,1,1
-
 armShapeTable0:
     .byte       <armUpL, <armUp, <armUp, <armUpR
     .byte       <armL,   <armL,  <armR,  <armR
@@ -483,90 +568,84 @@ armShapeMaskTable1:
 .endproc
 
 ;-----------------------------------------------------------------------------
-; Clear Screen (with effect)
-;   Clear low res screen with single horizontal (page0) or vertical (page1)
-;   line.
+; Clear Screen
 ;-----------------------------------------------------------------------------
 
-.proc clearScreenWithEffect
+.proc clearPartialScreen
 
     lda         PAGE2           ; bit 7 = page2 displayed
     bmi         clear0          ; display high, so draw low
     jmp         clear1
 
 clear0:
-    ldx         #39
+    lda         #BG_COLOR
+    ldx         #SCREEN_LEFT+1
 loop0:
-    lda         rowColor+0
-    sta         $0400,x
-    lda         rowColor+1
+    ;sta         $0400,x
     sta         $0480,x
-    lda         rowColor+2
     sta         $0500,x
-    lda         rowColor+3
     sta         $0580,x
-    lda         rowColor+4
     sta         $0600,x
-    lda         rowColor+5
     sta         $0680,x
-    lda         rowColor+6
     sta         $0700,x
-    lda         rowColor+7
     sta         $0780,x
-    lda         rowColor+8
     sta         $0428,x
-    lda         rowColor+9
     sta         $04A8,x
-    lda         rowColor+10
     sta         $0528,x
-    lda         rowColor+11
     sta         $05A8,x
-    lda         rowColor+12
     sta         $0628,x
-    lda         rowColor+13
     sta         $06A8,x
-    lda         rowColor+14
     sta         $0728,x
-    lda         rowColor+15
     sta         $07A8,x
-    lda         rowColor+16
     sta         $0450,x
-    lda         rowColor+17
     sta         $04D0,x
-    lda         rowColor+18
     sta         $0550,x
-    lda         rowColor+19
     sta         $05D0,x
-    lda         rowColor+20
     sta         $0650,x
-    lda         rowColor+21
     sta         $06D0,x
-    lda         rowColor+22
     sta         $0750,x
-    lda         rowColor+23
-    sta         $07D0,x
-    dex
-    bmi         :+
-    jmp         loop0
-:
+    ;sta         $07D0,x
+
+    inx
+    cpx         #SCREEN_RIGHT
+    bne         loop0
+
     lda         #0
     sta         drawPage        ; draw on cleared page
     rts
 
 clear1:
-    ldx         #40*3
+    lda         #BG_COLOR
+    ldx         #SCREEN_LEFT+1
 loop1:
-    lda         colColor,x
-    sta         $800,x
-    sta         $880,x
-    sta         $900,x
-    sta         $980,x
-    sta         $A00,x
-    sta         $A80,x
-    sta         $B00,x
-    sta         $B80,x
-    dex
-    bpl         loop1
+    ;sta         $0800,x
+    sta         $0880,x
+    sta         $0900,x
+    sta         $0980,x
+    sta         $0A00,x
+    sta         $0A80,x
+    sta         $0B00,x
+    sta         $0B80,x
+    sta         $0828,x
+    sta         $08A8,x
+    sta         $0928,x
+    sta         $09A8,x
+    sta         $0A28,x
+    sta         $0AA8,x
+    sta         $0B28,x
+    sta         $0BA8,x
+    sta         $0850,x
+    sta         $08D0,x
+    sta         $0950,x
+    sta         $09D0,x
+    sta         $0A50,x
+    sta         $0AD0,x
+    sta         $0B50,x
+    ;sta         $0BD0,x
+
+    inx
+    cpx         #SCREEN_RIGHT
+    bne         loop1
 
     lda         #4
     sta         drawPage        ; draw on cleared page
