@@ -12,16 +12,17 @@
 .segment "CODE"
 .org    $2000
 
-MOVEMENT_SPEED  = 9         ; how often you can move  (larger = slower)
-SHOOT_SPEED     = 19        ; how often you can shoot (larger = slower)
+MOVEMENT_SPEED  = 8         ; how often you can move  (larger = slower)
+SHOOT_SPEED     = 30        ; how often you can shoot (larger = slower)
 
-BORDER_COLOR0   = $05
-BORDER_COLOR1   = $50
+BORDER_COLOR0   = $15
+BORDER_COLOR1   = $51
 BG_COLOR        = $77
-SCREEN_TOP      = 1
-SCREEN_BOTTOM   = 46
-SCREEN_LEFT     = 1
-SCREEN_RIGHT    = 38
+
+SCREEN_TOP      = 3
+SCREEN_BOTTOM   = 44
+SCREEN_LEFT     = 2
+SCREEN_RIGHT    = 37
 
 .proc main
 
@@ -67,118 +68,49 @@ clear:
 
 shapeLoop:
     ldx         shapeIndex
-    lda         shapeList,x
-    bmi         doneShapeLoop
+    lda         monsterList,x
+    bmi         shapeNext
     sta         tileX
-    lda         shapeList+1,x
+    lda         monsterList+1,x
     sta         tileY
 
-    lda         shapeList+2,x
+    lda         monsterList+2,x
     sta         shapeWidth
-    lda         shapeList+3,x
+    lda         monsterList+3,x
     sta         shapeHeightBytes
-    lda         shapeList+4,x
+    lda         monsterList+4,x
     sta         shapeOffset
 
-    lda         shapeList+5,x
+    lda         monsterList+5,x
     sta         tilePtr0
-    lda         shapeList+6,x
+    lda         monsterList+6,x
     sta         tilePtr1
-    lda         shapeList+7,x
+    lda         monsterList+7,x
     sta         maskPtr0
-    lda         shapeList+8,x
+    lda         monsterList+8,x
     sta         maskPtr1
 
     jsr         drawMaskedShape
 
+shapeNext:
     clc
     lda         shapeIndex
     adc         #9
     sta         shapeIndex
-    jmp         shapeLoop
+    cmp         #MONSTER_LIST_SIZE
+    bne         shapeLoop
 doneShapeLoop:
-    jsr         updatePlayer
-    jsr         drawPlayer
+
     jsr         shootBullet
     jsr         updateBullet
-    jsr         updateEffect
+    jsr         updatePlayer
+    jsr         drawPlayer
 
     jmp         loop
 
 shapeIndex:     .byte   0
 
-shapeList:
-
-    .byte       8,10,   8,4,32
-    .word       shapeSpider1,shapeSpider1Mask
-
-    .byte       22,10,  8,4,32
-    .word       shapeSpider2,shapeSpider2Mask
-
-    .byte       255
-
 .endproc
-
-
-.proc updateEffect
-
-
-    rts         ; DISABLED
-
-
-    ; clear previous
-    lda         #0
-    ldx         prevRow
-    sta         rowColor,x
-    ldx         prevCol
-    sta         colColor,x
-    sta         colColor+40,x
-    sta         colColor+80,x
-
-
-    ldx         paddleX
-    lda         paddleColTable,x
-    sta         prevCol
-    tax
-    lda         #$ff
-    sta         colColor,x
-    sta         colColor+40,x
-    sta         colColor+80,x
-
-    ldx         paddleY
-    lda         paddleRowTable,x
-    lsr
-    sta         prevRow
-    tax
-    lda         #$0f
-    bcc         :+
-    lda         #$f0
-:
-    sta         rowColor,x
-    rts
-
-prevRow:        .byte   0
-prevCol:        .byte   0
-
-.align 256
-
-paddleRowTable:
-    .byte        0, 0, 0, 0, 0, 0                                                       ; 6
-    .byte        0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,10,10,11,11 ; 24
-    .byte       12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23,23 ; 24
-    .byte       24,24,25,25,26,26,27,27,28,28,29,29,30,30,31,31,32,32,33,33,34,34,35,35 ; 24
-    .byte       36,36,37,37,38,38,39,39,40,40,41,41,42,42,43,43,44,44,45,45,46,46,47,47 ; 24
-    .byte       47,47,47,47,47,47                                                       ; 6  = 108
-
-paddleColTable:
-    .byte        0, 0, 0, 0                                                                     ; 4
-    .byte        0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 8, 8, 9, 9, 9      ; 25
-    .byte       10,10,11,11,11,12,12,13,13,13,14,14,15,15,15,16,16,17,17,17,18,18,19,19,19      ; 25
-    .byte       20,20,21,21,21,22,22,23,23,23,24,24,25,25,25,26,26,27,27,27,28,28,29,29,29      ; 25
-    .byte       30,30,31,31,31,32,32,33,33,33,34,34,35,35,35,36,36,37,37,37,38,38,39,39,39      ; 25
-    .byte       39,39,39,39                                                                     ; 4  = 108
-.endproc
-
 
 ;-----------------------------------------------------------------------------
 ; Update Bullet
@@ -225,6 +157,22 @@ loop:
     cmp         #SCREEN_BOTTOM
     beq         invalidate
 
+
+    ; check for collision
+    jsr         getBG
+    ldx         index
+    cmp         #BG_COLOR
+    beq         doBullet
+    jsr         findCollision
+    cpx         #$FF
+    beq         doBullet
+    lda         #$FF
+    sta         monsterList+0,x     ; invalidate
+    ldx         #SOUND_REFUEL
+    jsr         playSound
+    ldx         index
+    jmp         invalidate
+doBullet:
     lda         bulletTable+8,x     ;color
     jsr         drawDot
 
@@ -265,6 +213,7 @@ index:          .byte   0
     lda         playerX
     adc         bulletXOffset,y
     sta         bulletTable+1,x     ; x1
+    clc
     lda         playerY
     adc         bulletYOffset,y
     sta         bulletTable+3,x     ; y1
@@ -568,6 +517,47 @@ armShapeMaskTable1:
 .endproc
 
 ;-----------------------------------------------------------------------------
+; Find Collision
+;
+;   Find first shape at curx,cury
+;   result in X (-1 if none)
+;-----------------------------------------------------------------------------
+.proc findCollision
+    ldx         #0
+
+loop:
+    lda         monsterList+0,x         ; X
+    bmi         next
+    cmp         curX
+    bcs         next
+    clc
+    adc         monsterList+2,x         ; X+width
+    cmp         curX
+    bcc         next
+    lda         monsterList+1,x         ; Y
+    cmp         curY
+    bcs         next
+    clc
+    adc         monsterList+3,x         ; y+height/2
+    adc         monsterList+3,x         ; y+height
+    cmp         curY
+    bcc         next
+    rts
+next:
+    txa
+    clc
+    adc         #9
+    tax
+    cpx         #MONSTER_LIST_SIZE
+    bne         loop
+
+    ldx         #$FF
+    rts                                 ; no collision found
+
+.endProc
+
+
+;-----------------------------------------------------------------------------
 ; Clear Screen
 ;-----------------------------------------------------------------------------
 
@@ -582,7 +572,7 @@ clear0:
     ldx         #SCREEN_LEFT+1
 loop0:
     ;sta         $0400,x
-    sta         $0480,x
+    ;sta         $0480,x
     sta         $0500,x
     sta         $0580,x
     sta         $0600,x
@@ -603,7 +593,7 @@ loop0:
     sta         $05D0,x
     sta         $0650,x
     sta         $06D0,x
-    sta         $0750,x
+    ;sta         $0750,x
     ;sta         $07D0,x
 
     inx
@@ -619,7 +609,7 @@ clear1:
     ldx         #SCREEN_LEFT+1
 loop1:
     ;sta         $0800,x
-    sta         $0880,x
+    ;sta         $0880,x
     sta         $0900,x
     sta         $0980,x
     sta         $0A00,x
@@ -640,7 +630,7 @@ loop1:
     sta         $09D0,x
     sta         $0A50,x
     sta         $0AD0,x
-    sta         $0B50,x
+    ;sta         $0B50,x
     ;sta         $0BD0,x
 
     inx
@@ -653,13 +643,6 @@ loop1:
     rts
 .endproc
 
-.align 32
-rowColor:       .res    24
-
-.align 128
-colColor:       .res    40*3
-
-
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
@@ -668,6 +651,18 @@ playerX:        .byte   20
 playerY:        .byte   20
 bodyDirection:  .byte   7
 armDirection:   .byte   7
+
+MONSTER_LIST_SIZE = monsterListDone - monsterList
+
+monsterList:    ; x,y, width,heightBytes,width*height, shape,mask
+
+    .byte       8,10,   8,4,32
+    .word       shapeSpider1,shapeSpider1Mask
+
+    .byte       22,10,  8,4,32
+    .word       shapeSpider2,shapeSpider2Mask
+
+monsterListDone:
 
 ;-----------------------------------------------------------------------------
 ; Libraries
