@@ -49,6 +49,10 @@ SCREEN_RIGHT    = 37
     jsr         playSound
 
 loop:
+    inc         time0
+    bne         :+
+    inc         time1       ; around once every 2 seconds
+:
     ; flip page
     lda         PAGE2
     bmi         :+
@@ -249,7 +253,6 @@ cooldown:       .byte   SHOOT_SPEED
 
 .endproc
 
-
 bulletXOffset:
     .byte       $00, $01, $01, $02
     .byte       $00, $01, $01, $02
@@ -262,11 +265,16 @@ bulletYOffset:
     .byte       $04, $04, $04, $04
     .byte       $05, $05, $05, $05
 
+; down  = 64                  = $40 ; diagonal down  = 64/sqrt(2) = 45 = $2D
+; right = 64 * 19.5/28.5 = 44 = $2C ; diagonal right = 44/sqrt(2) = 31 = $1F
+; up    = 256 - 64 = 192 =    = $C0 ; diagonal up    = 256 - 45 = 211  = $D3
+; left  = 256 - 44 = 212 =    = $D4 ; diagonal left  = 256 - 31 = 225  = $E1
+
 bulletVecX0Table:
-    .byte       $D3, $00, $00, $2D
-    .byte       $C0, $00, $00, $40
-    .byte       $C0, $00, $00, $40
-    .byte       $D3, $00, $00, $2D
+    .byte       $E1, $00, $00, $1F
+    .byte       $D4, $00, $00, $2C
+    .byte       $D4, $00, $00, $2C
+    .byte       $E1, $00, $00, $1F
 
 bulletVecX1Table:
     .byte       $FF, $00, $00, $00
@@ -275,7 +283,7 @@ bulletVecX1Table:
     .byte       $FF, $00, $00, $00
 
 bulletVecY0Table:
-    .byte       $D3, $C0, $C0, $C0
+    .byte       $D3, $C0, $C0, $D3
     .byte       $00, $00, $00, $00
     .byte       $00, $00, $00, $00
     .byte       $2D, $40, $40, $2D
@@ -646,6 +654,9 @@ loop1:
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
+
+time0:          .byte   0
+time1:          .byte   0
 
 playerX:        .byte   20
 playerY:        .byte   20
