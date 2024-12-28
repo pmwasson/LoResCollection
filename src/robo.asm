@@ -51,7 +51,7 @@ SCREEN_RIGHT    = 37
 loop:
     inc         time0
     bne         :+
-    inc         time1       ; around once every 2 seconds
+    inc         time1       ; about once every 2 seconds
 :
     ; flip page
     lda         PAGE2
@@ -66,6 +66,20 @@ clear:
     ; clear screen
     jsr         clearPartialScreen
     jsr         updateSound
+
+    ; updates
+    jsr         drawMonsters
+    jsr         shootBullet
+    jsr         updateBullet
+    jsr         updatePlayer
+    jsr         drawPlayer
+
+    jmp         loop
+
+.endproc
+
+
+.proc drawMonsters
 
     ldx         #0
     stx         shapeIndex
@@ -104,18 +118,11 @@ shapeNext:
     cmp         #MONSTER_LIST_SIZE
     bne         shapeLoop
 doneShapeLoop:
-
-    jsr         shootBullet
-    jsr         updateBullet
-    jsr         updatePlayer
-    jsr         drawPlayer
-
-    jmp         loop
+    rts
 
 shapeIndex:     .byte   0
 
 .endproc
-
 ;-----------------------------------------------------------------------------
 ; Update Bullet
 ;
@@ -252,73 +259,6 @@ allocateIndex:  .byte   0
 cooldown:       .byte   SHOOT_SPEED
 
 .endproc
-
-bulletXOffset:
-    .byte       $00, $01, $01, $02
-    .byte       $00, $01, $01, $02
-    .byte       $00, $01, $01, $02
-    .byte       $00, $01, $01, $02
-
-bulletYOffset:
-    .byte       $03, $03, $03, $03
-    .byte       $04, $04, $04, $04
-    .byte       $04, $04, $04, $04
-    .byte       $05, $05, $05, $05
-
-; down  = 64                  = $40 ; diagonal down  = 64/sqrt(2) = 45 = $2D
-; right = 64 * 19.5/28.5 = 44 = $2C ; diagonal right = 44/sqrt(2) = 31 = $1F
-; up    = 256 - 64 = 192 =    = $C0 ; diagonal up    = 256 - 45 = 211  = $D3
-; left  = 256 - 44 = 212 =    = $D4 ; diagonal left  = 256 - 31 = 225  = $E1
-
-bulletVecX0Table:
-    .byte       $E1, $00, $00, $1F
-    .byte       $D4, $00, $00, $2C
-    .byte       $D4, $00, $00, $2C
-    .byte       $E1, $00, $00, $1F
-
-bulletVecX1Table:
-    .byte       $FF, $00, $00, $00
-    .byte       $FF, $00, $00, $00
-    .byte       $FF, $00, $00, $00
-    .byte       $FF, $00, $00, $00
-
-bulletVecY0Table:
-    .byte       $D3, $C0, $C0, $D3
-    .byte       $00, $00, $00, $00
-    .byte       $00, $00, $00, $00
-    .byte       $2D, $40, $40, $2D
-
-bulletVecY1Table:
-    .byte       $FF, $FF, $FF, $FF
-    .byte       $00, $00, $00, $00
-    .byte       $00, $00, $00, $00
-    .byte       $00, $00, $00, $00
-
-; Bullet Data
-; 0: x0
-; 1: x1
-; 2: y0
-; 3: y1
-; 4: vx0
-; 5: vx1
-; 6: vy0
-; 7: vy1
-; 8: color
-BULLET_ENTRY_SIZE = 9
-BULLET_TABLE_SIZE = 8*BULLET_ENTRY_SIZE
-bulletTable:
-;    .byte   0,20,  0,23,  $40,$00,  $00,$00,  $dd   ; right
-;    .byte   0,20,  0,23,  $00,$00,  $40,$00,  $dd   ; down
-;    .byte   0,20,  0,23,  $C0,$FF,  $00,$00,  $dd   ; left
-;    .byte   0,20,  0,23,  $00,$00,  $C0,$FF,  $dd   ; up
-;    .byte   0,20,  0,23,  $2D,$00,  $2D,$00,  $dd   ; down-right
-;    .byte   0,20,  0,23,  $D3,$FF,  $2D,$00,  $dd   ; down-left
-;    .byte   0,20,  0,23,  $2D,$00,  $D3,$FF,  $dd   ; up-right
-;    .byte   0,20,  0,23,  $D3,$FF,  $D3,$FF,  $dd   ; up-left
-   .res    BULLET_TABLE_SIZE,255
-
-
-
 
 ;-----------------------------------------------------------------------------
 ; Update Player
@@ -674,6 +614,72 @@ monsterList:    ; x,y, width,heightBytes,width*height, shape,mask
     .word       shapeSpider2,shapeSpider2Mask
 
 monsterListDone:
+
+
+bulletXOffset:
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+    .byte       $00, $01, $01, $02
+
+bulletYOffset:
+    .byte       $03, $03, $03, $03
+    .byte       $04, $04, $04, $04
+    .byte       $04, $04, $04, $04
+    .byte       $05, $05, $05, $05
+
+; down  = 64                  = $40 ; diagonal down  = 64/sqrt(2) = 45 = $2D
+; right = 64 * 19.5/28.5 = 44 = $2C ; diagonal right = 44/sqrt(2) = 31 = $1F
+; up    = 256 - 64 = 192 =    = $C0 ; diagonal up    = 256 - 45 = 211  = $D3
+; left  = 256 - 44 = 212 =    = $D4 ; diagonal left  = 256 - 31 = 225  = $E1
+
+bulletVecX0Table:
+    .byte       $E1, $00, $00, $1F
+    .byte       $D4, $00, $00, $2C
+    .byte       $D4, $00, $00, $2C
+    .byte       $E1, $00, $00, $1F
+
+bulletVecX1Table:
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+    .byte       $FF, $00, $00, $00
+
+bulletVecY0Table:
+    .byte       $D3, $C0, $C0, $D3
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+    .byte       $2D, $40, $40, $2D
+
+bulletVecY1Table:
+    .byte       $FF, $FF, $FF, $FF
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+    .byte       $00, $00, $00, $00
+
+; Bullet Data
+; 0: x0
+; 1: x1
+; 2: y0
+; 3: y1
+; 4: vx0
+; 5: vx1
+; 6: vy0
+; 7: vy1
+; 8: color
+BULLET_ENTRY_SIZE = 9
+BULLET_TABLE_SIZE = 8*BULLET_ENTRY_SIZE
+bulletTable:
+;    .byte   0,20,  0,23,  $40,$00,  $00,$00,  $dd   ; right
+;    .byte   0,20,  0,23,  $00,$00,  $40,$00,  $dd   ; down
+;    .byte   0,20,  0,23,  $C0,$FF,  $00,$00,  $dd   ; left
+;    .byte   0,20,  0,23,  $00,$00,  $C0,$FF,  $dd   ; up
+;    .byte   0,20,  0,23,  $2D,$00,  $2D,$00,  $dd   ; down-right
+;    .byte   0,20,  0,23,  $D3,$FF,  $2D,$00,  $dd   ; down-left
+;    .byte   0,20,  0,23,  $2D,$00,  $D3,$FF,  $dd   ; up-right
+;    .byte   0,20,  0,23,  $D3,$FF,  $D3,$FF,  $dd   ; up-left
+   .res    BULLET_TABLE_SIZE,255
+
 
 ;-----------------------------------------------------------------------------
 ; Libraries

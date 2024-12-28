@@ -17,17 +17,11 @@ CROSSHAIR_COLOR = $11
     jsr         GR          ; set low-res graphics mode
     sta         MIXCLR      ; full screen
 
+    ldx         #SOUND_WAKEUP
+    jsr         playSound
+
 loop:
-    ldx         #0
-    jsr         PREAD
-    cpy         #40
-    bcs         :+
-    dec         xOffset
-:
-    cpy         #256-40
-    bcc         :+
     inc         xOffset
-:
     jsr         drawBackground
 
     lda         KBD
@@ -41,12 +35,29 @@ loop:
 .endproc
 
 .proc drawBackground
+    jsr         updateSound
+    lda         PAGE2               ; bit 7 = page2 displayed
+    bmi         drawLow             ; display high, so draw low
+    jsr         drawBackgroundHigh
+    jsr         updateSound
+    ;jsr         drawCrossHairsHigh
+    jsr         logo_0x800
+    bit         HISCR               ; display high screen
+    rts
+drawLow:
+    jsr         drawBackgroundLow
+    jsr         updateSound
+    ;jsr         drawCrossHairsLow
+    jsr         logo_0x400
+    bit         LOWSCR              ; display low screen
+    rts
+.endproc
+
+
+.proc drawBackgroundLow
 
     ldx         xOffset
     ldy         0
-    lda         PAGE2           ; bit 7 = page2 displayed
-    bmi         loopLow         ; display high, so draw low
-    jmp         loopHigh
 
     ; draw low page
 loopLow:
@@ -104,43 +115,13 @@ loopLow:
     beq         :+
     jmp         loopLow
 :
-
-    ; draw cross-hairs
-    lda         $528+19         ; row 10, col 19 -- bottom pixel
-    and         #$0f
-    ora         #(CROSSHAIR_COLOR & $f0)
-    sta         $528+19
-
-    lda         $5a8+19         ; row 11, col 19 -- top pixel
-    and         #$f0
-    ora         #(CROSSHAIR_COLOR & $0f)
-    sta         $5a8+19
-
-    lda         $628+16         ; row 12, col 16 -- top pixel
-    and         #$f0
-    ora         #(CROSSHAIR_COLOR & $0f)
-    sta         $628+16
-
-    lda         $628+17         ; row 12, col 17 -- top pixel
-    and         #$f0
-    ora         #(CROSSHAIR_COLOR & $0f)
-    sta         $628+17
-
-    lda         $628+21         ; row 12, col 21 -- top pixel
-    and         #$f0
-    ora         #(CROSSHAIR_COLOR & $0f)
-    sta         $628+21
-
-    lda         $628+22         ; row 12, col 22 -- top pixel
-    and         #$f0
-    ora         #(CROSSHAIR_COLOR & $0f)
-    sta         $628+22
-
-    lda         #CROSSHAIR_COLOR
-    sta         $6a8+19         ; row 13, colr 19 -- both pixels
-
-    bit         LOWSCR          ; display low screen
     rts
+.endproc
+
+.proc drawBackgroundHigh
+
+    ldx         xOffset
+    ldy         0
 
     ; draw high page
 loopHigh:
@@ -198,6 +179,50 @@ loopHigh:
     beq         :+
     jmp         loopHigh
 :
+    rts
+
+.endproc
+
+.proc drawCrossHairsLow
+
+    ; draw cross-hairs
+    lda         $528+19         ; row 10, col 19 -- bottom pixel
+    and         #$0f
+    ora         #(CROSSHAIR_COLOR & $f0)
+    sta         $528+19
+
+    lda         $5a8+19         ; row 11, col 19 -- top pixel
+    and         #$f0
+    ora         #(CROSSHAIR_COLOR & $0f)
+    sta         $5a8+19
+
+    lda         $628+16         ; row 12, col 16 -- top pixel
+    and         #$f0
+    ora         #(CROSSHAIR_COLOR & $0f)
+    sta         $628+16
+
+    lda         $628+17         ; row 12, col 17 -- top pixel
+    and         #$f0
+    ora         #(CROSSHAIR_COLOR & $0f)
+    sta         $628+17
+
+    lda         $628+21         ; row 12, col 21 -- top pixel
+    and         #$f0
+    ora         #(CROSSHAIR_COLOR & $0f)
+    sta         $628+21
+
+    lda         $628+22         ; row 12, col 22 -- top pixel
+    and         #$f0
+    ora         #(CROSSHAIR_COLOR & $0f)
+    sta         $628+22
+
+    lda         #CROSSHAIR_COLOR
+    sta         $6a8+19         ; row 13, colr 19 -- both pixels
+
+    rts
+.endproc
+
+.proc drawCrossHairsHigh
 
     ; draw cross-hairs
     lda         $928+19         ; row 10, col 19 -- bottom pixel
@@ -233,7 +258,6 @@ loopHigh:
     lda         #CROSSHAIR_COLOR
     sta         $aa8+19         ; row 13, colr 19 -- both pixels
 
-    bit         HISCR          ; display high screen
     rts
 .endproc
 
@@ -267,3 +291,5 @@ xOffset:        .byte       0
 
 .align 256
 .include "image.asm"
+.include "logo.asm"
+.include "sound.asm"
