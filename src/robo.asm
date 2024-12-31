@@ -24,6 +24,16 @@ SCREEN_BOTTOM   = 44
 SCREEN_LEFT     = 2
 SCREEN_RIGHT    = 37
 
+MAX_SHAPES      = 8
+MAX_MONSTERS    = MAX_SHAPES
+
+; Game script
+SEQ_WAIT            = 1
+SEQ_ACT_FIX         = 20
+SEQ_JUMP            = 30
+SEQ_JUMP_INACTIVE   = 31
+SEQ_DONE            = 40
+
 .proc main
 
     ;----------------------------------
@@ -48,11 +58,21 @@ SCREEN_RIGHT    = 37
     ldx         #SOUND_WAKEUP
     jsr         playSound
 
+    lda         #0
+    sta         sequenceIndex
+
 loop:
+
+    ; Timer
     inc         time0
     bne         :+
     inc         time1       ; about once every 2 seconds
 :
+
+    ; Game script
+    jsr         updateSequence
+    jsr         updateMonsters
+
     ; flip page
     lda         PAGE2
     bmi         :+
@@ -68,44 +88,145 @@ clear:
     jsr         updateSound
 
     ; updates
-    jsr         drawMonsters
+    jsr         drawShapes
     jsr         shootBullet
     jsr         updateBullet
     jsr         updatePlayer
     jsr         drawPlayer
 
-    jmp         loop
+    lda         KBD
+    bpl         loop
+    sta         KBDSTRB
+    brk
 
 .endproc
 
+.proc updateSequence
+    ldx         sequenceIndex
+    lda         sequenceList,x      ; read command
 
-.proc drawMonsters
+    cmp         #SEQ_WAIT
+    bne         seqWait_done
+    lda         time0
+    bne         :+
+    inc         sequenceTime
+    lda         sequenceList+1,x
+    cmp         sequenceTime
+    bne         :+
+nextSequence:
+    lda         sequenceIndex
+    clc
+    adc         #4
+    sta         sequenceIndex
+newInstruction:
+    ; reset timer
+    lda         #0
+    sta         sequenceTime
+:
+    rts                             ; still waiting
+seqWait_done:
+
+    ; SEQ_ACT_FIX, ID, X, Y
+    cmp         #SEQ_ACT_FIX
+    bne         seqActFix_done
+    ldy         shapeListIndex
+    lda         sequenceList+2,x    ; X
+    sta         shapeList+0,y       ; X
+    lda         sequenceList+3,x    ; Y
+    sta         shapeList+1,y       ; Y
+    lda         #8                  ; 8x8
+    sta         shapeList+2,y       ; width
+    lda         #4
+    sta         shapeList+3,y       ; height/2 (bytes)
+    lda         #32
+    sta         shapeList+4,y       ; 8*4
+    lda         #<shapeSpider1
+    sta         shapeList+5,y
+    lda         #>shapeSpider1
+    sta         shapeList+6,y
+    lda         #<shapeSpider1Mask
+    sta         shapeList+7,y
+    lda         #>shapeSpider1Mask
+    sta         shapeList+8,y
+
+    ldx         #SOUND_CHARM
+    jsr         playSound
+
+    jsr         incShapeIndex
+    jmp         nextSequence
+seqActFix_done:
+
+    cmp         #SEQ_JUMP
+    bne         seqJump_done
+    lda         sequenceList+1,x
+    sta         sequenceIndex
+    jmp         newInstruction
+seqJump_done:
+
+    cmp         #SEQ_JUMP_INACTIVE
+    bne         seqJumpInactive_done
+    lda         activeCount
+    beq         :+
+    jmp         nextSequence        ; if active, goto next
+:
+    lda         sequenceList+1,x
+    sta         sequenceIndex
+    jmp         newInstruction
+seqJumpInactive_done:
+
+    jsr     TEXT
+    jsr     HOME
+    jsr     inlinePrint
+    .byte   "Unknown command",0
+    brk
+
+sequenceTime:   .byte   0
+
+.endproc
+
+.proc incShapeIndex
+    lda         shapeListIndex
+    clc
+    adc         #9
+    cmp         #SHAPE_LIST_SIZE
+    bne         :+
+    lda         #0
+:
+    sta         shapeListIndex
+    rts
+.endproc
+
+.proc levelDone
+    brk
+.endproc
+
+.proc drawShapes
 
     ldx         #0
     stx         shapeIndex
 
 shapeLoop:
     ldx         shapeIndex
-    lda         monsterList,x
+    lda         shapeList,x
     bmi         shapeNext
     sta         tileX
-    lda         monsterList+1,x
+    lda         shapeList+1,x
     sta         tileY
 
-    lda         monsterList+2,x
+    lda         shapeList+2,x
     sta         shapeWidth
-    lda         monsterList+3,x
+    lda         shapeList+3,x
     sta         shapeHeightBytes
-    lda         monsterList+4,x
+    lda         shapeList+4,x
     sta         shapeOffset
 
-    lda         monsterList+5,x
+    lda         shapeList+5,x
     sta         tilePtr0
-    lda         monsterList+6,x
+    lda         shapeList+6,x
     sta         tilePtr1
-    lda         monsterList+7,x
+    lda         shapeList+7,x
     sta         maskPtr0
-    lda         monsterList+8,x
+    lda         shapeList+8,x
     sta         maskPtr1
 
     jsr         drawMaskedShape
@@ -115,7 +236,7 @@ shapeNext:
     lda         shapeIndex
     adc         #9
     sta         shapeIndex
-    cmp         #MONSTER_LIST_SIZE
+    cmp         #SHAPE_LIST_SIZE
     bne         shapeLoop
 doneShapeLoop:
     rts
@@ -123,6 +244,60 @@ doneShapeLoop:
 shapeIndex:     .byte   0
 
 .endproc
+
+.proc updateMonsters
+
+    lda         #0
+    sta         activeCount
+    ldx         #0
+    stx         shapeIndex
+
+shapeLoop:
+    ldx         shapeIndex
+    lda         shapeList,x
+    bmi         shapeNext
+
+    inc         activeCount
+
+    lda         time0
+    and         #%011111        ; 1/32 frames
+    bne         shapeNext
+
+    lda         time0
+    and         #%100000
+    beq         :+
+    lda         #<shapeSpider2
+    sta         shapeList+5,x
+    lda         #>shapeSpider2
+    sta         shapeList+6,x
+    lda         #<shapeSpider2Mask
+    sta         shapeList+7,x
+    lda         #>shapeSpider2Mask
+    jmp         shapeNext
+
+:
+    lda         #<shapeSpider1
+    sta         shapeList+5,x
+    lda         #>shapeSpider1
+    sta         shapeList+6,x
+    lda         #<shapeSpider1Mask
+    sta         shapeList+7,x
+    lda         #>shapeSpider1Mask
+
+shapeNext:
+    clc
+    lda         shapeIndex
+    adc         #9
+    sta         shapeIndex
+    cmp         #SHAPE_LIST_SIZE
+    bne         shapeLoop
+doneShapeLoop:
+    rts
+
+shapeIndex:     .byte   0
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Update Bullet
 ;
@@ -178,7 +353,7 @@ loop:
     cpx         #$FF
     beq         doBullet
     lda         #$FF
-    sta         monsterList+0,x     ; invalidate
+    sta         shapeList+0,x     ; invalidate
     ldx         #SOUND_REFUEL
     jsr         playSound
     ldx         index
@@ -474,20 +649,20 @@ armShapeMaskTable1:
     ldx         #0
 
 loop:
-    lda         monsterList+0,x         ; X
+    lda         shapeList+0,x         ; X
     bmi         next
     cmp         curX
     bcs         next
     clc
-    adc         monsterList+2,x         ; X+width
+    adc         shapeList+2,x         ; X+width
     cmp         curX
     bcc         next
-    lda         monsterList+1,x         ; Y
+    lda         shapeList+1,x         ; Y
     cmp         curY
     bcs         next
     clc
-    adc         monsterList+3,x         ; y+height/2
-    adc         monsterList+3,x         ; y+height
+    adc         shapeList+3,x         ; y+height/2
+    adc         shapeList+3,x         ; y+height
     cmp         curY
     bcc         next
     rts
@@ -496,7 +671,7 @@ next:
     clc
     adc         #9
     tax
-    cpx         #MONSTER_LIST_SIZE
+    cpx         #SHAPE_LIST_SIZE
     bne         loop
 
     ldx         #$FF
@@ -597,24 +772,32 @@ loop1:
 
 time0:          .byte   0
 time1:          .byte   0
+sequenceIndex:  .byte   0
+activeCount:    .byte   2
+shapeListIndex: .byte   0
 
 playerX:        .byte   20
 playerY:        .byte   20
 bodyDirection:  .byte   7
 armDirection:   .byte   7
 
-MONSTER_LIST_SIZE = monsterListDone - monsterList
+SHAPE_LIST_SIZE = shapeListDone - shapeList
+shapeList:    ; x,y, width,heightBytes,width*height, shape,mask
+    .res        MAX_SHAPES*9,255
+shapeListDone:
 
-monsterList:    ; x,y, width,heightBytes,width*height, shape,mask
-
-    .byte       8,10,   8,4,32
-    .word       shapeSpider1,shapeSpider1Mask
-
-    .byte       22,10,  8,4,32
-    .word       shapeSpider2,shapeSpider2Mask
-
-monsterListDone:
-
+sequenceList:
+seqLoop1:
+    .byte   SEQ_WAIT,           2,  0,  0   ; wait 4 seconds
+    .byte   SEQ_ACT_FIX,        1,  8,  10  ; activate monster 1 at 8,10
+    .byte   SEQ_WAIT,           2,  0,  0   ; wait 4 seconds
+    .byte   SEQ_ACT_FIX,        1,  22, 10  ; activate monster 1 at 22,10
+seqLoopWait:
+    .byte   SEQ_WAIT,           1,  0,  0   ; wait 2 seconds
+    .byte   SEQ_JUMP_INACTIVE,  seqLoop1-sequenceList,0,0
+    .byte   SEQ_JUMP,           seqLoopWait-sequenceList,0,0
+seqDone:
+    .byte   SEQ_DONE,           0,  0,  0   ; done
 
 bulletXOffset:
     .byte       $00, $01, $01, $02

@@ -5,445 +5,399 @@
 logo_0x400:
   ; full bytes
   lda #$dd
-  sta $58b
-  sta $58c
   sta $58d
   sta $58e
   sta $58f
   sta $590
-  sta $594
-  sta $595
+  sta $591
+  sta $592
   sta $596
   sta $597
   sta $598
   sta $599
-  sta $59c
-  sta $59d
+  sta $59a
+  sta $59b
   sta $59e
   sta $59f
   sta $5a0
   sta $5a1
   sta $5a2
   sta $5a3
-  sta $60b
-  sta $60c
-  sta $611
-  sta $614
-  sta $615
-  sta $622
-  sta $68b
-  sta $68c
-  sta $690
-  sta $691
-  sta $694
-  sta $695
+  sta $5a4
+  sta $5a5
+  sta $60d
+  sta $60e
+  sta $613
+  sta $616
+  sta $617
+  sta $624
+  sta $68d
+  sta $68e
+  sta $692
+  sta $693
   sta $696
   sta $697
   sta $698
-  sta $6a0
-  sta $70b
-  sta $70c
-  sta $710
-  sta $714
-  sta $715
-  sta $71e
-  sta $78b
-  sta $78c
-  sta $790
-  sta $791
-  sta $794
-  sta $795
-  sta $79c
-  sta $79d
-  lda #$0
-  sta $60d
-  sta $612
-  sta $616
-  sta $692
+  sta $699
+  sta $69a
+  sta $6a2
+  sta $70d
+  sta $70e
+  sta $712
   sta $716
+  sta $717
+  sta $720
   sta $78d
+  sta $78e
   sta $792
-  sta $435
-  sta $43a
-  sta $442
-  sta $44c
+  sta $793
+  sta $796
+  sta $797
+  sta $79e
+  sta $79f
+  lda #$0
+  sta $60f
+  sta $614
+  sta $618
+  sta $694
+  sta $718
+  sta $78f
+  sta $794
+  sta $42b
+  sta $437
+  sta $43c
+  sta $444
+  sta $44e
   sta $4ab
   sta $52b
-  sta $5ab
   sta $5b5
-  sta $635
-  sta $63a
+  sta $5ba
+  sta $6cd
+  sta $4f5
+  sta $575
+  sta $5f4
   lda #$d0
-  sta $621
-  sta $68d
-  sta $711
-  sta $796
-  sta $79e
-  lda #$d
   sta $623
-  sta $6a1
-  sta $70d
-  sta $71f
-  sta $434
-  sta $439
-  sta $43d
-  sta $43e
+  sta $68f
+  sta $713
+  sta $798
+  sta $7a0
+  lda #$d
+  sta $625
+  sta $6a3
+  sta $70f
+  sta $721
+  sta $436
+  sta $43b
   sta $43f
   sta $440
   sta $441
-  sta $445
-  sta $446
+  sta $442
+  sta $443
   sta $447
   sta $448
   sta $449
   sta $44a
   sta $44b
+  sta $44c
+  sta $44d
   lda #$bb
+  sta $429
+  sta $42a
   sta $4a9
   sta $4aa
   sta $529
   sta $52a
-  sta $535
-  sta $536
-  sta $537
+  sta $534
+  sta $538
   sta $5a9
   sta $5aa
+  sta $5ab
+  sta $5ac
+  sta $5ad
+  sta $5ae
+  sta $5af
+  sta $5b0
   sta $5b3
   sta $5b4
   sta $5b8
   sta $5b9
-  sta $629
-  sta $62a
-  sta $62b
-  sta $62c
-  sta $62d
-  sta $62e
-  sta $62f
-  sta $630
-  sta $633
   sta $634
   sta $638
+  lda #$b
+  sta $535
+  sta $536
+  sta $537
   sta $639
-  sta $6b5
   sta $6b6
   sta $6b7
-  lda #$11
-  sta $5c5
-  sta $5c6
+  lda #$b0
+  sta $635
+  lda #$cc
+  sta $640
+  sta $641
+  sta $642
   sta $643
   sta $644
   sta $645
   sta $646
   sta $647
   sta $648
+  sta $649
+  sta $64a
+  sta $64b
+  sta $64c
+  sta $6c0
   sta $6c1
   sta $6c2
-  sta $6c3
-  sta $6c7
-  sta $6c8
-  sta $6c9
-  sta $6ca
   sta $740
   sta $741
   sta $742
-  sta $749
-  sta $74a
-  sta $74b
+  sta $7c0
+  sta $7c1
   sta $7c2
   sta $7c3
   sta $7c4
   sta $7c5
-  sta $463
-  sta $464
-  sta $465
-  sta $46d
-  sta $46e
-  sta $46f
-  sta $4e4
-  sta $4e5
-  sta $4e6
-  sta $4ed
-  sta $4ee
-  sta $4ef
-  sta $565
-  sta $566
-  sta $567
+  sta $7c6
+  sta $7c7
+  sta $7c8
+  sta $7c9
+  sta $7ca
+  sta $471
+  sta $472
+  sta $473
+  sta $4f2
+  sta $4f3
+  sta $4f4
   sta $568
   sta $569
-  sta $56b
-  sta $56c
-  sta $56d
-  sta $5e8
+  sta $56a
+  sta $572
+  sta $573
+  sta $574
   sta $5e9
   sta $5ea
   sta $5eb
-  lda #$b
-  sta $6b8
+  sta $5ec
+  sta $5ed
+  sta $5ee
+  sta $5ef
+  sta $5f0
+  sta $5f1
+  sta $5f2
+  sta $5f3
+  lda #$c
+  sta $6c3
+  sta $6c4
+  sta $6c5
+  sta $6c6
+  sta $6c7
+  sta $6c8
+  sta $6c9
+  sta $6ca
+  sta $6cb
+  sta $6cc
+  sta $46a
+  sta $46b
+  sta $46c
+  sta $46d
+  sta $46e
+  sta $46f
+  sta $470
+  sta $66b
+  sta $66c
+  sta $66d
+  sta $66e
+  sta $66f
+  sta $670
+  sta $671
+  sta $672
+  lda #$c0
+  sta $474
   ; even bytes
-  lda $60e
-  and #$f0
-  sta $60e
-  lda $60f
-  and #$f0
-  sta $60f
   lda $610
   and #$f0
-  ora #$d
   sta $610
-  lda $617
+  lda $611
   and #$f0
-  sta $617
-  lda $618
+  sta $611
+  lda $612
   and #$f0
-  sta $618
+  ora #$d
+  sta $612
   lda $619
   and #$f0
   sta $619
   lda $61a
   and #$f0
   sta $61a
-  lda $61d
+  lda $61b
   and #$f0
-  sta $61d
-  lda $61e
+  sta $61b
+  lda $61c
   and #$f0
-  sta $61e
+  sta $61c
   lda $61f
   and #$f0
   sta $61f
   lda $620
   and #$f0
   sta $620
-  lda $624
+  lda $621
   and #$f0
-  sta $624
-  lda $6a2
+  sta $621
+  lda $622
   and #$f0
-  sta $6a2
-  lda $70e
+  sta $622
+  lda $626
+  and #$f0
+  sta $626
+  lda $6a4
+  and #$f0
+  sta $6a4
+  lda $710
   and #$f0
   ora #$d
-  sta $70e
-  lda $70f
+  sta $710
+  lda $711
   and #$f0
   ora #$d
-  sta $70f
-  lda $717
-  and #$f0
-  sta $717
-  lda $718
-  and #$f0
-  sta $718
+  sta $711
   lda $719
   and #$f0
   sta $719
-  lda $720
+  lda $71a
   and #$f0
-  sta $720
-  lda $433
+  sta $71a
+  lda $71b
   and #$f0
-  ora #$d
-  sta $433
-  lda $438
+  sta $71b
+  lda $722
   and #$f0
-  ora #$d
-  sta $438
-  lda $43c
+  sta $722
+  lda $435
   and #$f0
   ora #$d
-  sta $43c
-  lda $444
+  sta $435
+  lda $43a
   and #$f0
   ora #$d
-  sta $444
-  lda $5b6
+  sta $43a
+  lda $43e
   and #$f0
-  sta $5b6
-  lda $5b7
+  ora #$d
+  sta $43e
+  lda $446
   and #$f0
-  sta $5b7
-  lda $6aa
+  ora #$d
+  sta $446
+  lda $62a
   and #$f0
-  sta $6aa
-  lda $6ab
+  sta $62a
+  lda $62b
   and #$f0
-  sta $6ab
-  lda $6ac
+  sta $62b
+  lda $62c
   and #$f0
-  sta $6ac
-  lda $6ad
+  sta $62c
+  lda $62d
   and #$f0
-  sta $6ad
-  lda $6ae
+  sta $62d
+  lda $62e
   and #$f0
-  sta $6ae
-  lda $6af
+  sta $62e
+  lda $62f
   and #$f0
-  sta $6af
-  lda $6b0
+  sta $62f
+  lda $630
   and #$f0
-  sta $6b0
-  lda $6b1
+  sta $630
+  lda $631
   and #$f0
-  sta $6b1
-  lda $6b4
+  sta $631
+  lda $633
   and #$f0
   ora #$b
-  sta $6b4
-  lda $6b9
+  sta $633
+  lda $63a
   and #$f0
-  sta $6b9
-  lda $6be
+  sta $63a
+  lda $6b5
   and #$f0
-  ora #$1
-  sta $6be
-  lda $6c4
+  ora #$b
+  sta $6b5
+  lda $6b8
   and #$f0
-  ora #$1
-  sta $6c4
-  lda $6c6
+  sta $6b8
+  lda $469
   and #$f0
-  ora #$1
-  sta $6c6
-  lda $736
+  ora #$c
+  sta $469
+  lda $5e8
   and #$f0
-  sta $736
-  lda $737
+  ora #$c
+  sta $5e8
+  lda $66a
   and #$f0
-  sta $737
-  lda $73b
+  ora #$c
+  sta $66a
+  lda $673
   and #$f0
-  ora #$1
-  sta $73b
-  lda $748
-  and #$f0
-  ora #$1
-  sta $748
-  lda $74c
-  and #$f0
-  ora #$1
-  sta $74c
-  lda $7c1
-  and #$f0
-  ora #$1
-  sta $7c1
-  lda $7ca
-  and #$f0
-  ora #$1
-  sta $7ca
-  lda $45f
-  and #$f0
-  ora #$1
-  sta $45f
-  lda $468
-  and #$f0
-  ora #$1
-  sta $468
-  lda $46c
-  and #$f0
-  ora #$1
-  sta $46c
-  lda $475
-  and #$f0
-  ora #$1
-  sta $475
-  lda $4e3
-  and #$f0
-  ora #$1
-  sta $4e3
-  lda $561
-  and #$f0
-  ora #$1
-  sta $561
-  lda $564
-  and #$f0
-  ora #$1
-  sta $564
-  lda $56e
-  and #$f0
-  ora #$1
-  sta $56e
-  lda $574
-  and #$f0
-  ora #$1
-  sta $574
-  lda $5e7
-  and #$f0
-  ora #$1
-  sta $5e7
-  lda $5ec
-  and #$f0
-  ora #$1
-  sta $5ec
-  lda $5f2
-  and #$f0
-  ora #$1
-  sta $5f2
-  lda $66d
-  and #$f0
-  ora #$1
-  sta $66d
-  lda $670
-  and #$f0
-  ora #$1
-  sta $670
-  lda $6e9
-  and #$f0
-  ora #$1
-  sta $6e9
+  sta $673
   ; odd bytes
-  lda $591
+  lda $593
   and #$0f
   ora #$d0
-  sta $591
-  lda $59a
+  sta $593
+  lda $59c
   and #$0f
-  sta $59a
-  lda $5a4
+  sta $59c
+  lda $5a6
   and #$0f
-  sta $5a4
-  lda $68e
-  and #$0f
-  ora #$d0
-  sta $68e
-  lda $68f
+  sta $5a6
+  lda $690
   and #$0f
   ora #$d0
-  sta $68f
-  lda $699
-  and #$0f
-  sta $699
-  lda $69f
+  sta $690
+  lda $691
   and #$0f
   ora #$d0
-  sta $69f
-  lda $712
+  sta $691
+  lda $69b
   and #$0f
-  sta $712
-  lda $71d
-  and #$0f
-  ora #$d0
-  sta $71d
-  lda $797
+  sta $69b
+  lda $6a1
   and #$0f
   ora #$d0
-  sta $797
-  lda $798
+  sta $6a1
+  lda $714
+  and #$0f
+  sta $714
+  lda $71f
   and #$0f
   ora #$d0
-  sta $798
+  sta $71f
+  lda $781
+  and #$0f
+  ora #$b0
+  sta $781
+  lda $782
+  and #$0f
+  ora #$b0
+  sta $782
   lda $799
   and #$0f
   ora #$d0
   sta $799
-  lda $79f
+  lda $79a
   and #$0f
   ora #$d0
-  sta $79f
-  lda $7a0
+  sta $79a
+  lda $79b
   and #$0f
   ora #$d0
-  sta $7a0
+  sta $79b
   lda $7a1
   and #$0f
   ora #$d0
@@ -456,567 +410,457 @@ logo_0x400:
   and #$0f
   ora #$d0
   sta $7a3
-  lda $429
+  lda $7a4
+  and #$0f
+  ora #$d0
+  sta $7a4
+  lda $7a5
+  and #$0f
+  ora #$d0
+  sta $7a5
+  lda $4b5
   and #$0f
   ora #$b0
-  sta $429
-  lda $42a
+  sta $4b5
+  lda $4b6
   and #$0f
   ora #$b0
-  sta $42a
-  lda $534
+  sta $4b6
+  lda $4b7
   and #$0f
   ora #$b0
-  sta $534
-  lda $538
+  sta $4b7
+  lda $533
   and #$0f
   ora #$b0
-  sta $538
-  lda $542
+  sta $533
+  lda $539
   and #$0f
-  ora #$10
-  sta $542
-  lda $5ba
+  ora #$b0
+  sta $539
+  lda $5b1
   and #$0f
-  sta $5ba
-  lda $5c0
+  sta $5b1
+  lda $636
   and #$0f
-  ora #$10
-  sta $5c0
-  lda $5c4
+  ora #$b0
+  sta $636
+  lda $637
   and #$0f
-  ora #$10
-  sta $5c4
-  lda $5c7
+  ora #$b0
+  sta $637
+  lda $64d
   and #$0f
-  ora #$10
-  sta $5c7
-  lda $5cb
+  sta $64d
+  lda $7cb
   and #$0f
-  ora #$10
-  sta $5cb
-  lda $631
+  ora #$c0
+  sta $7cb
+  lda $56b
   and #$0f
-  sta $631
-  lda $642
+  ora #$c0
+  sta $56b
+  lda $571
   and #$0f
-  ora #$10
-  sta $642
-  lda $649
-  and #$0f
-  ora #$10
-  sta $649
-  lda $6c0
-  and #$0f
-  ora #$10
-  sta $6c0
-  lda $6cb
-  and #$0f
-  ora #$10
-  sta $6cb
-  lda $6ce
-  and #$0f
-  ora #$10
-  sta $6ce
-  lda $73d
-  and #$0f
-  ora #$10
-  sta $73d
-  lda $743
-  and #$0f
-  ora #$10
-  sta $743
-  lda $744
-  and #$0f
-  ora #$10
-  sta $744
-  lda $7bc
-  and #$0f
-  ora #$10
-  sta $7bc
-  lda $7bd
-  and #$0f
-  ora #$10
-  sta $7bd
-  lda $7c6
-  and #$0f
-  ora #$10
-  sta $7c6
-  lda $472
-  and #$0f
-  ora #$10
-  sta $472
-  lda $4de
-  and #$0f
-  ora #$10
-  sta $4de
-  lda $4e7
-  and #$0f
-  ora #$10
-  sta $4e7
-  lda $4ec
-  and #$0f
-  ora #$10
-  sta $4ec
-  lda $56a
-  and #$0f
-  ora #$10
-  sta $56a
-  lda $5e3
-  and #$0f
-  ora #$10
-  sta $5e3
-  lda $666
-  and #$0f
-  ora #$10
-  sta $666
-  lda $6ed
-  and #$0f
-  ora #$10
-  sta $6ed
+  ora #$c0
+  sta $571
   rts
 logo_0x800:
   ; full bytes
   lda #$dd
-  sta $98b
-  sta $98c
   sta $98d
   sta $98e
   sta $98f
   sta $990
-  sta $994
-  sta $995
+  sta $991
+  sta $992
   sta $996
   sta $997
   sta $998
   sta $999
-  sta $99c
-  sta $99d
+  sta $99a
+  sta $99b
   sta $99e
   sta $99f
   sta $9a0
   sta $9a1
   sta $9a2
   sta $9a3
-  sta $a0b
-  sta $a0c
-  sta $a11
-  sta $a14
-  sta $a15
-  sta $a22
-  sta $a8b
-  sta $a8c
-  sta $a90
-  sta $a91
-  sta $a94
-  sta $a95
+  sta $9a4
+  sta $9a5
+  sta $a0d
+  sta $a0e
+  sta $a13
+  sta $a16
+  sta $a17
+  sta $a24
+  sta $a8d
+  sta $a8e
+  sta $a92
+  sta $a93
   sta $a96
   sta $a97
   sta $a98
-  sta $aa0
-  sta $b0b
-  sta $b0c
-  sta $b10
-  sta $b14
-  sta $b15
-  sta $b1e
-  sta $b8b
-  sta $b8c
-  sta $b90
-  sta $b91
-  sta $b94
-  sta $b95
-  sta $b9c
-  sta $b9d
-  lda #$0
-  sta $a0d
-  sta $a12
-  sta $a16
-  sta $a92
+  sta $a99
+  sta $a9a
+  sta $aa2
+  sta $b0d
+  sta $b0e
+  sta $b12
   sta $b16
+  sta $b17
+  sta $b20
   sta $b8d
+  sta $b8e
   sta $b92
-  sta $835
-  sta $83a
-  sta $842
-  sta $84c
+  sta $b93
+  sta $b96
+  sta $b97
+  sta $b9e
+  sta $b9f
+  lda #$0
+  sta $a0f
+  sta $a14
+  sta $a18
+  sta $a94
+  sta $b18
+  sta $b8f
+  sta $b94
+  sta $82b
+  sta $837
+  sta $83c
+  sta $844
+  sta $84e
   sta $8ab
   sta $92b
-  sta $9ab
   sta $9b5
-  sta $a35
-  sta $a3a
+  sta $9ba
+  sta $acd
+  sta $8f5
+  sta $975
+  sta $9f4
   lda #$d0
-  sta $a21
-  sta $a8d
-  sta $b11
-  sta $b96
-  sta $b9e
-  lda #$d
   sta $a23
-  sta $aa1
-  sta $b0d
-  sta $b1f
-  sta $834
-  sta $839
-  sta $83d
-  sta $83e
+  sta $a8f
+  sta $b13
+  sta $b98
+  sta $ba0
+  lda #$d
+  sta $a25
+  sta $aa3
+  sta $b0f
+  sta $b21
+  sta $836
+  sta $83b
   sta $83f
   sta $840
   sta $841
-  sta $845
-  sta $846
+  sta $842
+  sta $843
   sta $847
   sta $848
   sta $849
   sta $84a
   sta $84b
+  sta $84c
+  sta $84d
   lda #$bb
+  sta $829
+  sta $82a
   sta $8a9
   sta $8aa
   sta $929
   sta $92a
-  sta $935
-  sta $936
-  sta $937
+  sta $934
+  sta $938
   sta $9a9
   sta $9aa
+  sta $9ab
+  sta $9ac
+  sta $9ad
+  sta $9ae
+  sta $9af
+  sta $9b0
   sta $9b3
   sta $9b4
   sta $9b8
   sta $9b9
-  sta $a29
-  sta $a2a
-  sta $a2b
-  sta $a2c
-  sta $a2d
-  sta $a2e
-  sta $a2f
-  sta $a30
-  sta $a33
   sta $a34
   sta $a38
+  lda #$b
+  sta $935
+  sta $936
+  sta $937
   sta $a39
-  sta $ab5
   sta $ab6
   sta $ab7
-  lda #$11
-  sta $9c5
-  sta $9c6
+  lda #$b0
+  sta $a35
+  lda #$cc
+  sta $a40
+  sta $a41
+  sta $a42
   sta $a43
   sta $a44
   sta $a45
   sta $a46
   sta $a47
   sta $a48
+  sta $a49
+  sta $a4a
+  sta $a4b
+  sta $a4c
+  sta $ac0
   sta $ac1
   sta $ac2
-  sta $ac3
-  sta $ac7
-  sta $ac8
-  sta $ac9
-  sta $aca
   sta $b40
   sta $b41
   sta $b42
-  sta $b49
-  sta $b4a
-  sta $b4b
+  sta $bc0
+  sta $bc1
   sta $bc2
   sta $bc3
   sta $bc4
   sta $bc5
-  sta $863
-  sta $864
-  sta $865
-  sta $86d
-  sta $86e
-  sta $86f
-  sta $8e4
-  sta $8e5
-  sta $8e6
-  sta $8ed
-  sta $8ee
-  sta $8ef
-  sta $965
-  sta $966
-  sta $967
+  sta $bc6
+  sta $bc7
+  sta $bc8
+  sta $bc9
+  sta $bca
+  sta $871
+  sta $872
+  sta $873
+  sta $8f2
+  sta $8f3
+  sta $8f4
   sta $968
   sta $969
-  sta $96b
-  sta $96c
-  sta $96d
-  sta $9e8
+  sta $96a
+  sta $972
+  sta $973
+  sta $974
   sta $9e9
   sta $9ea
   sta $9eb
-  lda #$b
-  sta $ab8
+  sta $9ec
+  sta $9ed
+  sta $9ee
+  sta $9ef
+  sta $9f0
+  sta $9f1
+  sta $9f2
+  sta $9f3
+  lda #$c
+  sta $ac3
+  sta $ac4
+  sta $ac5
+  sta $ac6
+  sta $ac7
+  sta $ac8
+  sta $ac9
+  sta $aca
+  sta $acb
+  sta $acc
+  sta $86a
+  sta $86b
+  sta $86c
+  sta $86d
+  sta $86e
+  sta $86f
+  sta $870
+  sta $a6b
+  sta $a6c
+  sta $a6d
+  sta $a6e
+  sta $a6f
+  sta $a70
+  sta $a71
+  sta $a72
+  lda #$c0
+  sta $874
   ; even bytes
-  lda $a0e
-  and #$f0
-  sta $a0e
-  lda $a0f
-  and #$f0
-  sta $a0f
   lda $a10
   and #$f0
-  ora #$d
   sta $a10
-  lda $a17
+  lda $a11
   and #$f0
-  sta $a17
-  lda $a18
+  sta $a11
+  lda $a12
   and #$f0
-  sta $a18
+  ora #$d
+  sta $a12
   lda $a19
   and #$f0
   sta $a19
   lda $a1a
   and #$f0
   sta $a1a
-  lda $a1d
+  lda $a1b
   and #$f0
-  sta $a1d
-  lda $a1e
+  sta $a1b
+  lda $a1c
   and #$f0
-  sta $a1e
+  sta $a1c
   lda $a1f
   and #$f0
   sta $a1f
   lda $a20
   and #$f0
   sta $a20
-  lda $a24
+  lda $a21
   and #$f0
-  sta $a24
-  lda $aa2
+  sta $a21
+  lda $a22
   and #$f0
-  sta $aa2
-  lda $b0e
+  sta $a22
+  lda $a26
+  and #$f0
+  sta $a26
+  lda $aa4
+  and #$f0
+  sta $aa4
+  lda $b10
   and #$f0
   ora #$d
-  sta $b0e
-  lda $b0f
+  sta $b10
+  lda $b11
   and #$f0
   ora #$d
-  sta $b0f
-  lda $b17
-  and #$f0
-  sta $b17
-  lda $b18
-  and #$f0
-  sta $b18
+  sta $b11
   lda $b19
   and #$f0
   sta $b19
-  lda $b20
+  lda $b1a
   and #$f0
-  sta $b20
-  lda $833
+  sta $b1a
+  lda $b1b
   and #$f0
-  ora #$d
-  sta $833
-  lda $838
+  sta $b1b
+  lda $b22
   and #$f0
-  ora #$d
-  sta $838
-  lda $83c
+  sta $b22
+  lda $835
   and #$f0
   ora #$d
-  sta $83c
-  lda $844
+  sta $835
+  lda $83a
   and #$f0
   ora #$d
-  sta $844
-  lda $9b6
+  sta $83a
+  lda $83e
   and #$f0
-  sta $9b6
-  lda $9b7
+  ora #$d
+  sta $83e
+  lda $846
   and #$f0
-  sta $9b7
-  lda $aaa
+  ora #$d
+  sta $846
+  lda $a2a
   and #$f0
-  sta $aaa
-  lda $aab
+  sta $a2a
+  lda $a2b
   and #$f0
-  sta $aab
-  lda $aac
+  sta $a2b
+  lda $a2c
   and #$f0
-  sta $aac
-  lda $aad
+  sta $a2c
+  lda $a2d
   and #$f0
-  sta $aad
-  lda $aae
+  sta $a2d
+  lda $a2e
   and #$f0
-  sta $aae
-  lda $aaf
+  sta $a2e
+  lda $a2f
   and #$f0
-  sta $aaf
-  lda $ab0
+  sta $a2f
+  lda $a30
   and #$f0
-  sta $ab0
-  lda $ab1
+  sta $a30
+  lda $a31
   and #$f0
-  sta $ab1
-  lda $ab4
+  sta $a31
+  lda $a33
   and #$f0
   ora #$b
-  sta $ab4
-  lda $ab9
+  sta $a33
+  lda $a3a
   and #$f0
-  sta $ab9
-  lda $abe
+  sta $a3a
+  lda $ab5
   and #$f0
-  ora #$1
-  sta $abe
-  lda $ac4
+  ora #$b
+  sta $ab5
+  lda $ab8
   and #$f0
-  ora #$1
-  sta $ac4
-  lda $ac6
+  sta $ab8
+  lda $869
   and #$f0
-  ora #$1
-  sta $ac6
-  lda $b36
+  ora #$c
+  sta $869
+  lda $9e8
   and #$f0
-  sta $b36
-  lda $b37
+  ora #$c
+  sta $9e8
+  lda $a6a
   and #$f0
-  sta $b37
-  lda $b3b
+  ora #$c
+  sta $a6a
+  lda $a73
   and #$f0
-  ora #$1
-  sta $b3b
-  lda $b48
-  and #$f0
-  ora #$1
-  sta $b48
-  lda $b4c
-  and #$f0
-  ora #$1
-  sta $b4c
-  lda $bc1
-  and #$f0
-  ora #$1
-  sta $bc1
-  lda $bca
-  and #$f0
-  ora #$1
-  sta $bca
-  lda $85f
-  and #$f0
-  ora #$1
-  sta $85f
-  lda $868
-  and #$f0
-  ora #$1
-  sta $868
-  lda $86c
-  and #$f0
-  ora #$1
-  sta $86c
-  lda $875
-  and #$f0
-  ora #$1
-  sta $875
-  lda $8e3
-  and #$f0
-  ora #$1
-  sta $8e3
-  lda $961
-  and #$f0
-  ora #$1
-  sta $961
-  lda $964
-  and #$f0
-  ora #$1
-  sta $964
-  lda $96e
-  and #$f0
-  ora #$1
-  sta $96e
-  lda $974
-  and #$f0
-  ora #$1
-  sta $974
-  lda $9e7
-  and #$f0
-  ora #$1
-  sta $9e7
-  lda $9ec
-  and #$f0
-  ora #$1
-  sta $9ec
-  lda $9f2
-  and #$f0
-  ora #$1
-  sta $9f2
-  lda $a6d
-  and #$f0
-  ora #$1
-  sta $a6d
-  lda $a70
-  and #$f0
-  ora #$1
-  sta $a70
-  lda $ae9
-  and #$f0
-  ora #$1
-  sta $ae9
+  sta $a73
   ; odd bytes
-  lda $991
+  lda $993
   and #$0f
   ora #$d0
-  sta $991
-  lda $99a
+  sta $993
+  lda $99c
   and #$0f
-  sta $99a
-  lda $9a4
+  sta $99c
+  lda $9a6
   and #$0f
-  sta $9a4
-  lda $a8e
-  and #$0f
-  ora #$d0
-  sta $a8e
-  lda $a8f
+  sta $9a6
+  lda $a90
   and #$0f
   ora #$d0
-  sta $a8f
-  lda $a99
-  and #$0f
-  sta $a99
-  lda $a9f
+  sta $a90
+  lda $a91
   and #$0f
   ora #$d0
-  sta $a9f
-  lda $b12
+  sta $a91
+  lda $a9b
   and #$0f
-  sta $b12
-  lda $b1d
-  and #$0f
-  ora #$d0
-  sta $b1d
-  lda $b97
+  sta $a9b
+  lda $aa1
   and #$0f
   ora #$d0
-  sta $b97
-  lda $b98
+  sta $aa1
+  lda $b14
+  and #$0f
+  sta $b14
+  lda $b1f
   and #$0f
   ora #$d0
-  sta $b98
+  sta $b1f
+  lda $b81
+  and #$0f
+  ora #$b0
+  sta $b81
+  lda $b82
+  and #$0f
+  ora #$b0
+  sta $b82
   lda $b99
   and #$0f
   ora #$d0
   sta $b99
-  lda $b9f
+  lda $b9a
   and #$0f
   ora #$d0
-  sta $b9f
-  lda $ba0
+  sta $b9a
+  lda $b9b
   and #$0f
   ora #$d0
-  sta $ba0
+  sta $b9b
   lda $ba1
   and #$0f
   ora #$d0
@@ -1029,122 +873,58 @@ logo_0x800:
   and #$0f
   ora #$d0
   sta $ba3
-  lda $829
+  lda $ba4
+  and #$0f
+  ora #$d0
+  sta $ba4
+  lda $ba5
+  and #$0f
+  ora #$d0
+  sta $ba5
+  lda $8b5
   and #$0f
   ora #$b0
-  sta $829
-  lda $82a
+  sta $8b5
+  lda $8b6
   and #$0f
   ora #$b0
-  sta $82a
-  lda $934
+  sta $8b6
+  lda $8b7
   and #$0f
   ora #$b0
-  sta $934
-  lda $938
+  sta $8b7
+  lda $933
   and #$0f
   ora #$b0
-  sta $938
-  lda $942
+  sta $933
+  lda $939
   and #$0f
-  ora #$10
-  sta $942
-  lda $9ba
+  ora #$b0
+  sta $939
+  lda $9b1
   and #$0f
-  sta $9ba
-  lda $9c0
+  sta $9b1
+  lda $a36
   and #$0f
-  ora #$10
-  sta $9c0
-  lda $9c4
+  ora #$b0
+  sta $a36
+  lda $a37
   and #$0f
-  ora #$10
-  sta $9c4
-  lda $9c7
+  ora #$b0
+  sta $a37
+  lda $a4d
   and #$0f
-  ora #$10
-  sta $9c7
-  lda $9cb
+  sta $a4d
+  lda $bcb
   and #$0f
-  ora #$10
-  sta $9cb
-  lda $a31
+  ora #$c0
+  sta $bcb
+  lda $96b
   and #$0f
-  sta $a31
-  lda $a42
+  ora #$c0
+  sta $96b
+  lda $971
   and #$0f
-  ora #$10
-  sta $a42
-  lda $a49
-  and #$0f
-  ora #$10
-  sta $a49
-  lda $ac0
-  and #$0f
-  ora #$10
-  sta $ac0
-  lda $acb
-  and #$0f
-  ora #$10
-  sta $acb
-  lda $ace
-  and #$0f
-  ora #$10
-  sta $ace
-  lda $b3d
-  and #$0f
-  ora #$10
-  sta $b3d
-  lda $b43
-  and #$0f
-  ora #$10
-  sta $b43
-  lda $b44
-  and #$0f
-  ora #$10
-  sta $b44
-  lda $bbc
-  and #$0f
-  ora #$10
-  sta $bbc
-  lda $bbd
-  and #$0f
-  ora #$10
-  sta $bbd
-  lda $bc6
-  and #$0f
-  ora #$10
-  sta $bc6
-  lda $872
-  and #$0f
-  ora #$10
-  sta $872
-  lda $8de
-  and #$0f
-  ora #$10
-  sta $8de
-  lda $8e7
-  and #$0f
-  ora #$10
-  sta $8e7
-  lda $8ec
-  and #$0f
-  ora #$10
-  sta $8ec
-  lda $96a
-  and #$0f
-  ora #$10
-  sta $96a
-  lda $9e3
-  and #$0f
-  ora #$10
-  sta $9e3
-  lda $a66
-  and #$0f
-  ora #$10
-  sta $a66
-  lda $aed
-  and #$0f
-  ora #$10
-  sta $aed
+  ora #$c0
+  sta $971
   rts

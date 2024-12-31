@@ -10,6 +10,8 @@
 
 IMAGE = image
 CROSSHAIR_COLOR = $11
+SCROLL_SPEED = 256-45
+SCROLL_SPEED_UPPER = $ff
 
 .proc main
 
@@ -21,7 +23,13 @@ CROSSHAIR_COLOR = $11
     jsr         playSound
 
 loop:
-    inc         xOffset
+    clc
+    lda         xSubOffset
+    adc         #SCROLL_SPEED
+    sta         xSubOffset
+    lda         xOffset
+    adc         #SCROLL_SPEED_UPPER
+    sta         xOffset
     jsr         drawBackground
 
     lda         KBD
@@ -288,6 +296,7 @@ quitParams:
 ;------------------------------------------------------------------------------
 
 xOffset:        .byte       0
+xSubOffset:     .byte       0
 
 .align 256
 .include "image.asm"

@@ -7,7 +7,7 @@
 ;   clobbers A,X,Y
 ;
 ; Example:
-;   jsr     inline_print
+;   jsr     inlinePrint
 ;   .byte   "HELLO WORLD!",0
 ;   <next instruction>
 
