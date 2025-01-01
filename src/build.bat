@@ -34,9 +34,9 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\landscape.asm apple2.lib  -o lands
 :: Start with a blank prodos disk
 copy ..\disk\template_prodos.dsk lores.dsk  || exit
 
+java -jar C:\jar\AppleCommander.jar -as lores.dsk lander.system sys < lander.apple2    || exit
 java -jar C:\jar\AppleCommander.jar -as lores.dsk robo.system sys   < robo.apple2      || exit
 java -jar C:\jar\AppleCommander.jar -as lores.dsk land.system sys   < landscape.apple2 || exit
-java -jar C:\jar\AppleCommander.jar -as lores.dsk lander.system sys < lander.apple2    || exit
 java -jar C:\jar\AppleCommander.jar -as lores.dsk escape.system sys < escape.apple2    || exit
 
 :: Throw on basic

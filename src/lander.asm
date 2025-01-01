@@ -30,12 +30,14 @@ MAP_SCREEN_BOTTOM       =  22       ; Must be /2
 GRAVITY                 = 5
 BG_COLOR                = $77   ; for collision detection
 
-COLLISION_MASK          = %1111
-COLLISION_TOP           = %0001
-COLLISION_LEFT          = %0010
-COLLISION_RIGHT         = %0100
-COLLISION_BOTTOM_LEFT   = %1010
-COLLISION_BOTTOM_RIGHT  = %1100
+COLLISION_MASK              =    %11111
+COLLISION_TOP               =    %00001
+COLLISION_LEFT              =    %00010
+COLLISION_RIGHT             =    %00100
+COLLISION_BOTTOM_LEFT       =    %10010
+COLLISION_BOTTOM_RIGHT      =    %10100
+COLLISION_BOTTOM_MID        =    %11000
+COLLISION_BOTTOM_MID_MASK   = %11110111
 
 .proc main
 
@@ -560,6 +562,22 @@ collision0:
     beq         :+
     ora         #COLLISION_BOTTOM_RIGHT
 :
+    cpy         PLAYER_ROW2_0+5
+    beq         :+
+    ora         #COLLISION_BOTTOM_RIGHT
+:
+    ; for bottom mid, should check all 4 location, but just check 2 middle are clear
+    ; This is done by ORing +2 and the ANDing +3 if not set.
+    ; This could result in BOTTOM being set without right/left or mid, which can
+    ; still be interpreted as bottom middle
+    cpy         PLAYER_ROW2_0+2
+    beq         :+
+    ora         #COLLISION_BOTTOM_MID
+:
+    cpy         PLAYER_ROW2_0+3
+    bne         :+
+    and         #COLLISION_BOTTOM_MID_MASK
+:
     rts
 
 collision1:
@@ -587,6 +605,14 @@ collision1:
     cpy         PLAYER_ROW2_1+5
     beq         :+
     ora         #COLLISION_BOTTOM_RIGHT
+:
+    cpy         PLAYER_ROW2_1+2
+    beq         :+
+    ora         #COLLISION_BOTTOM_MID
+:
+    cpy         PLAYER_ROW2_1+3
+    bne         :+
+    and         #COLLISION_BOTTOM_MID_MASK
 :
     rts
 
@@ -880,12 +906,17 @@ RESULT_ALL_UP           = RESULT_CLEAR_VX | RESULT_UP
 RESULT_ALL_STOP         = RESULT_CLEAR_VX | RESULT_CLEAR_VY
 RESULT_LAND             = RESULT_SET_LAND | RESULT_ALL_UP
 
-;16 bytes
+;32 bytes
+; bit pattern = bottom mid right left top
 collisionResultTable:                                                                   ; * = illegal
-    .byte   0,              RESULT_DOWN,        RESULT_RIGHT,       RESULT_DOWN_RIGHT   ; 0000  0001  0010 0011
-    .byte   RESULT_LEFT,    RESULT_DOWN_LEFT,   RESULT_ALL_UP,      RESULT_ALL_DOWN     ; 0100  0101  0110 0111
-    .byte   RESULT_UP,      RESULT_ALL_STOP,    RESULT_UP_RIGHT,    RESULT_ALL_RIGHT    ; 1000* 1001* 1010 1011
-    .byte   RESULT_UP_LEFT, RESULT_ALL_LEFT,    RESULT_LAND,        RESULT_ALL_STOP     ; 1100  1101  1110 1111
+    .byte   0,              RESULT_DOWN,        RESULT_RIGHT,       RESULT_DOWN_RIGHT   ; 00000  00001  00010  00011
+    .byte   RESULT_LEFT,    RESULT_DOWN_LEFT,   RESULT_ALL_UP,      RESULT_ALL_DOWN     ; 00100  00101  00110  00111
+    .byte   0,              RESULT_DOWN,        RESULT_RIGHT,       RESULT_DOWN_RIGHT   ; 01000* 01001* 01010* 01011*
+    .byte   RESULT_LEFT,    RESULT_DOWN_LEFT,   RESULT_ALL_UP,      RESULT_ALL_DOWN     ; 01100* 01101* 01110* 01111*
+    .byte   RESULT_UP,      RESULT_ALL_STOP,    RESULT_UP_RIGHT,    RESULT_ALL_RIGHT    ; 10000  10001  10010  10011
+    .byte   RESULT_UP_LEFT, RESULT_ALL_LEFT,    RESULT_UP,          RESULT_ALL_STOP     ; 10100  10101  10110  10111
+    .byte   RESULT_UP,      RESULT_ALL_STOP,    RESULT_UP_RIGHT,    RESULT_ALL_RIGHT    ; 11000  11001  11010  11011
+    .byte   RESULT_UP_LEFT, RESULT_ALL_LEFT,    RESULT_LAND,        RESULT_ALL_STOP     ; 11100  11101  11110  11111
 
 
 ; 44 bytes

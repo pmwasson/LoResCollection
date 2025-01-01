@@ -794,8 +794,16 @@ seqLoop1:
     .byte   SEQ_ACT_FIX,        1,  22, 10  ; activate monster 1 at 22,10
 seqLoopWait:
     .byte   SEQ_WAIT,           1,  0,  0   ; wait 2 seconds
-    .byte   SEQ_JUMP_INACTIVE,  seqLoop1-sequenceList,0,0
+    .byte   SEQ_JUMP_INACTIVE,  seqMore-sequenceList,0,0
     .byte   SEQ_JUMP,           seqLoopWait-sequenceList,0,0
+seqMore:
+    .byte   SEQ_ACT_FIX,        1,  4 , 18  ;
+    .byte   SEQ_WAIT,           1,  0,  0   ;
+    .byte   SEQ_ACT_FIX,        1,  16, 18  ;
+    .byte   SEQ_WAIT,           1,  0,  0   ;
+    .byte   SEQ_ACT_FIX,        1,  26, 18  ;
+    .byte   SEQ_JUMP,           seqLoop1-sequenceList,0,0
+
 seqDone:
     .byte   SEQ_DONE,           0,  0,  0   ; done
 
