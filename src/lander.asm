@@ -174,8 +174,26 @@ doneGravity:
 
     ; Get input
     ;---------------
-
+    ; only read joystick once every 16 frames to speed things up
+    inc         time0
+    lda         time0
+    and         #%1111
+    bne         :+
     jsr         readJoystick        ; return value 0..107
+    ; quantize joystick
+    lda         paddleX
+    lsr
+    lsr
+    lsr
+    lsr                             ; 0..6
+    sta         paddleX
+    lda         paddleY
+    lsr
+    lsr
+    lsr
+    lsr                             ; 0..6
+    sta         paddleY
+:
 
     lda         BUTTON0
     bmi         doButton
@@ -190,21 +208,6 @@ doButton:
     lda         #GRAVITY
     sta         gravityVec
     jsr         decreaseFuel
-
-    ; quantize joystick
-    lda         paddleX
-    lsr
-    lsr
-    lsr
-    lsr                             ; 0..6
-    sta         paddleX
-
-    lda         paddleY
-    lsr
-    lsr
-    lsr
-    lsr                             ; 0..6
-    sta         paddleY
 
     ldx         paddleX
     clc
@@ -476,13 +479,18 @@ PLAYER_XOFFSET  = 16
 PLAYER_ROW0_0   = $7A8 + PLAYER_XOFFSET     ; 15 (30)
 PLAYER_ROW1_0   = $450 + PLAYER_XOFFSET     ; 16 (32)
 PLAYER_ROW2_0   = $4D0 + PLAYER_XOFFSET     ; 17 (34)
+PLAYER_ROW3_0   = $550 + PLAYER_XOFFSET     ; 18 (36)
 PLAYER_ROW0_1   = $400 + PLAYER_ROW0_0
 PLAYER_ROW1_1   = $400 + PLAYER_ROW1_0
 PLAYER_ROW2_1   = $400 + PLAYER_ROW2_0
+PLAYER_ROW3_1   = $400 + PLAYER_ROW3_0
 PLAYER_COLOR0   = $FF
 PLAYER_COLOR1   = $F5
 PLAYER_COLLISION_COLOR0 = $99
 PLAYER_COLLISION_COLOR1 = $90
+
+REFUEL_COLOR0 = $CC
+REFUEL_COLOR1 = $C1
 
 .proc drawPlayer
 
@@ -507,6 +515,16 @@ draw0:
     lda         shipColor1
     sta         PLAYER_ROW1_0+2
     sta         PLAYER_ROW1_0+3
+    lda         gravityVec
+    bne         :+
+    lda         #REFUEL_COLOR0
+    sta         PLAYER_ROW3_0-1
+    sta         PLAYER_ROW3_0+0
+    sta         PLAYER_ROW3_0+1
+    sta         PLAYER_ROW3_0+4
+    sta         PLAYER_ROW3_0+5
+    sta         PLAYER_ROW3_0+6
+:
     rts
 
 draw1:
@@ -520,6 +538,15 @@ draw1:
     lda         shipColor1
     sta         PLAYER_ROW1_1+2
     sta         PLAYER_ROW1_1+3
+    lda         gravityVec
+    bne         :+
+    lda         #REFUEL_COLOR0
+    sta         PLAYER_ROW3_1-1
+    sta         PLAYER_ROW3_1+0
+    sta         PLAYER_ROW3_1+1
+    sta         PLAYER_ROW3_1+4
+    sta         PLAYER_ROW3_1+5
+    sta         PLAYER_ROW3_1+6
     rts
 
 .endproc
@@ -861,7 +888,7 @@ quitParams:
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
-
+time0:              .byte   0
 worldX:             .byte   0
 worldY:             .byte   0
 mapPaddleX:         .byte   0
