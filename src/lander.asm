@@ -147,12 +147,12 @@ doneGravity:
     jsr         drawTileMap
 
     ; check for collision after drawing map, but before any other drawing
-    lda         #PLAYER_COLOR0
+    lda         #PLAYER_COLOR0              ; default to normal color
     sta         shipColor0
     lda         #PLAYER_COLOR1
     sta         shipColor1
     jsr         detectCollision
-    and         #COLLISION_MASK
+    and         #COLLISION_MASK             ; this isn't really needed, just being cautious
     sta         collisionResult
     beq         :+
     lda         #PLAYER_COLLISION_COLOR0
@@ -489,8 +489,7 @@ PLAYER_COLOR1   = $F5
 PLAYER_COLLISION_COLOR0 = $99
 PLAYER_COLLISION_COLOR1 = $90
 
-REFUEL_COLOR0 = $CC
-REFUEL_COLOR1 = $C1
+REFUEL_COLOR = $22
 
 .proc drawPlayer
 
@@ -517,13 +516,11 @@ draw0:
     sta         PLAYER_ROW1_0+3
     lda         gravityVec
     bne         :+
-    lda         #REFUEL_COLOR0
-    sta         PLAYER_ROW3_0-1
+    lda         #REFUEL_COLOR
     sta         PLAYER_ROW3_0+0
     sta         PLAYER_ROW3_0+1
     sta         PLAYER_ROW3_0+4
     sta         PLAYER_ROW3_0+5
-    sta         PLAYER_ROW3_0+6
 :
     rts
 
@@ -540,13 +537,11 @@ draw1:
     sta         PLAYER_ROW1_1+3
     lda         gravityVec
     bne         :+
-    lda         #REFUEL_COLOR0
-    sta         PLAYER_ROW3_1-1
+    lda         #REFUEL_COLOR
     sta         PLAYER_ROW3_1+0
     sta         PLAYER_ROW3_1+1
     sta         PLAYER_ROW3_1+4
     sta         PLAYER_ROW3_1+5
-    sta         PLAYER_ROW3_1+6
     rts
 
 .endproc

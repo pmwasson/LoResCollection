@@ -766,6 +766,108 @@ loop1:
     rts
 .endproc
 
+.proc testcode
+
+; Transfer buffer to screen
+    ldy         frameBuffer+32*0,x
+    lda         colorRow0,y
+    sta         $0600,x
+    lda         colorRow1,y
+    sta         $0680,x
+
+    ldy         frameBuffer+32*1,x
+    lda         colorRow0,y
+    sta         $0700,x
+    lda         colorRow1,y
+    sta         $0780,x
+
+    ldy         frameBuffer+32*2,x
+    lda         colorRow0,y
+    sta         $0428,x
+    lda         colorRow1,y
+    sta         $04A8,x
+
+    ldy         frameBuffer+32*3,x
+    lda         colorRow0,y
+    sta         $0528,x
+    lda         colorRow1,y
+    sta         $05A8,x
+
+    ldy         frameBuffer+32*4,x
+    lda         colorRow0,y
+    sta         $0628,x
+    lda         colorRow1,y
+    sta         $06A8,x
+
+    ldy         frameBuffer+32*5,x
+    lda         colorRow0,y
+    sta         $0728,x
+    lda         colorRow1,y
+    sta         $07A8,x
+
+    ldy         frameBuffer+32*6,x
+    lda         colorRow0,y
+    sta         $0450,x
+    lda         colorRow1,y
+    sta         $04D0,x
+
+    ldy         frameBuffer+32*7,x
+    lda         colorRow0,y
+    sta         $0550,x
+    lda         colorRow1,y
+    sta         $05D0,x
+
+; clear buffer
+
+    lda         #0
+    sta         compositeBuffer+32*0,x
+    sta         compositeBuffer+32*1,x
+    sta         compositeBuffer+32*2,x
+    sta         compositeBuffer+32*3,x
+    sta         compositeBuffer+32*4,x
+    sta         compositeBuffer+32*5,x
+    sta         compositeBuffer+32*6,x
+    sta         compositeBuffer+32*7,x
+
+; draw to buffer (6x5)
+; 6*2*4 = 48 bytes for AND/OR -> 5 monsters (no animation or have alternate page?)
+
+    lda         #6
+    sta         tempZP
+    ldx         bufferOffset        ; y/4*32+column
+    ldy         monsterOffset       ; initial+y%4*(6*2)
+loop:
+    ; first row
+    lda         compositeBuffer,x
+    and         monsterShapeAnd,y
+    ora         monsterShapeOr,y
+    sta         compositeBuffer,x
+    ; second row
+    lda         compositeBuffer+COMPOSITE_BUFFER_WIDTH,x
+    and         monsterShapeAnd+6,y
+    ora         monsterShapeOr+6,y
+    sta         compositeBuffer,x
+
+    inx
+    iny
+    dec         tempZP
+    bne         loop
+
+bufferOffset:       .byte   0
+monsterOffset:      .byte   0
+
+monsterShapeOr:     .res    48
+monsterShapeAnd:    .res    48
+
+.align 256
+COMPOSITE_BUFFER_WIDTH = 32
+compositeBuffer:    .res    256
+frameBuffer:        .res    256
+colorRow0:          .res    256
+colorRow1:          .res    256
+
+.endproc
+
 ;-----------------------------------------------------------------------------
 ; Globals
 ;-----------------------------------------------------------------------------
@@ -824,11 +926,20 @@ bulletYOffset:
 ; up    = 256 - 64 = 192 =    = $C0 ; diagonal up    = 256 - 45 = 211  = $D3
 ; left  = 256 - 44 = 212 =    = $D4 ; diagonal left  = 256 - 31 = 225  = $E1
 
+BV_D  = $40
+BV_DD = $2D
+BV_R  = $2C
+BV_RD = $1F
+BV_U  = 256 - BV_D
+BV_UD = 256 - BV_DD
+BV_L  = 256 - BV_R
+BV_LD = 256 - BV_RD
+
 bulletVecX0Table:
-    .byte       $E1, $00, $00, $1F
-    .byte       $D4, $00, $00, $2C
-    .byte       $D4, $00, $00, $2C
-    .byte       $E1, $00, $00, $1F
+    .byte       BV_LD, $00, $00, BV_RD
+    .byte       BV_L,  $00, $00, BV_R
+    .byte       BV_L,  $00, $00, BV_R
+    .byte       BV_LD, $00, $00, BV_RD
 
 bulletVecX1Table:
     .byte       $FF, $00, $00, $00
@@ -837,10 +948,10 @@ bulletVecX1Table:
     .byte       $FF, $00, $00, $00
 
 bulletVecY0Table:
-    .byte       $D3, $C0, $C0, $D3
-    .byte       $00, $00, $00, $00
-    .byte       $00, $00, $00, $00
-    .byte       $2D, $40, $40, $2D
+    .byte       BV_UD, BV_U, BV_U, BV_UD
+    .byte       $00,   $00,  $00,  $00
+    .byte       $00,   $00,  $00,  $00
+    .byte       BV_DD, BV_D, BV_D, BV_DD
 
 bulletVecY1Table:
     .byte       $FF, $FF, $FF, $FF
