@@ -768,58 +768,108 @@ loop1:
 
 .proc testcode
 
-; Transfer buffer to screen
+.proc buffer2Screen0
+    ldx         #32
+loop:
+; Transfer buffer to screen (expand 1 byte -> 4 pixels)
     ldy         frameBuffer+32*0,x
     lda         colorRow0,y
     sta         $0600,x
     lda         colorRow1,y
     sta         $0680,x
-
     ldy         frameBuffer+32*1,x
     lda         colorRow0,y
     sta         $0700,x
     lda         colorRow1,y
     sta         $0780,x
-
     ldy         frameBuffer+32*2,x
     lda         colorRow0,y
     sta         $0428,x
     lda         colorRow1,y
     sta         $04A8,x
-
     ldy         frameBuffer+32*3,x
     lda         colorRow0,y
     sta         $0528,x
     lda         colorRow1,y
     sta         $05A8,x
-
     ldy         frameBuffer+32*4,x
     lda         colorRow0,y
     sta         $0628,x
     lda         colorRow1,y
     sta         $06A8,x
-
     ldy         frameBuffer+32*5,x
     lda         colorRow0,y
     sta         $0728,x
     lda         colorRow1,y
     sta         $07A8,x
-
     ldy         frameBuffer+32*6,x
     lda         colorRow0,y
     sta         $0450,x
     lda         colorRow1,y
     sta         $04D0,x
-
     ldy         frameBuffer+32*7,x
     lda         colorRow0,y
     sta         $0550,x
     lda         colorRow1,y
     sta         $05D0,x
+    dex
+    bpl         loop
+    rts
+.endproc
 
-; clear buffer
+.proc buffer2Screen1
+    ldx         #32
+loop:
+; Transfer buffer to screen (expand 1 byte -> 4 pixels)
+    ldy         frameBuffer+32*0,x
+    lda         colorRow0,y
+    sta         $0a00,x
+    lda         colorRow1,y
+    sta         $0a80,x
+    ldy         frameBuffer+32*1,x
+    lda         colorRow0,y
+    sta         $0b00,x
+    lda         colorRow1,y
+    sta         $0b80,x
+    ldy         frameBuffer+32*2,x
+    lda         colorRow0,y
+    sta         $0828,x
+    lda         colorRow1,y
+    sta         $08A8,x
+    ldy         frameBuffer+32*3,x
+    lda         colorRow0,y
+    sta         $0928,x
+    lda         colorRow1,y
+    sta         $09A8,x
+    ldy         frameBuffer+32*4,x
+    lda         colorRow0,y
+    sta         $0a28,x
+    lda         colorRow1,y
+    sta         $0aA8,x
+    ldy         frameBuffer+32*5,x
+    lda         colorRow0,y
+    sta         $0b28,x
+    lda         colorRow1,y
+    sta         $0bA8,x
+    ldy         frameBuffer+32*6,x
+    lda         colorRow0,y
+    sta         $0850,x
+    lda         colorRow1,y
+    sta         $08D0,x
+    ldy         frameBuffer+32*7,x
+    lda         colorRow0,y
+    sta         $0950,x
+    lda         colorRow1,y
+    sta         $09D0,x
+    dex
+    bpl         loop
+    rts
+.endproc
 
+.proc clearBuffer
     lda         #0
+    ldx         #32
+loop:
     sta         compositeBuffer+32*0,x
     sta         compositeBuffer+32*1,x
     sta         compositeBuffer+32*2,x
@@ -828,11 +878,39 @@ loop1:
     sta         compositeBuffer+32*5,x
     sta         compositeBuffer+32*6,x
     sta         compositeBuffer+32*7,x
+    dex
+    bpl         loop
+    rts
+.endproc
 
-; draw to buffer (6x5)
-; 6*2*4 = 48 bytes for AND/OR -> 5 monsters (no animation or have alternate page?)
+.proc copyBuffer
+    ldx         #32
+loop:
+    lda         compositeBuffer+32*0,x
+    sta         frameBuffer+32*0,x
+    lda         compositeBuffer+32*1,x
+    sta         frameBuffer+32*1,x
+    lda         compositeBuffer+32*2,x
+    sta         frameBuffer+32*2,x
+    lda         compositeBuffer+32*3,x
+    sta         frameBuffer+32*3,x
+    lda         compositeBuffer+32*4,x
+    sta         frameBuffer+32*4,x
+    lda         compositeBuffer+32*5,x
+    sta         frameBuffer+32*5,x
+    lda         compositeBuffer+32*6,x
+    sta         frameBuffer+32*6,x
+    lda         compositeBuffer+32*7,x
+    sta         frameBuffer+32*7,x
+    dex
+    bpl         loop
+    rts
+.endproc
 
-    lda         #6
+; draw to buffer (7x9+3)
+; 7*3*4 = 84 bytes for AND/OR -> 3 shapes (no animation or have alternate page?)
+.proc drawToBuffer_7x9
+    lda         #7
     sta         tempZP
     ldx         bufferOffset        ; y/4*32+column
     ldy         monsterOffset       ; initial+y%4*(6*2)
@@ -844,20 +922,24 @@ loop:
     sta         compositeBuffer,x
     ; second row
     lda         compositeBuffer+COMPOSITE_BUFFER_WIDTH,x
-    and         monsterShapeAnd+6,y
-    ora         monsterShapeOr+6,y
+    and         monsterShapeAnd+7,y
+    ora         monsterShapeOr+7,y
     sta         compositeBuffer,x
-
+    ; third row
+    lda         compositeBuffer+COMPOSITE_BUFFER_WIDTH*2,x
+    and         monsterShapeAnd+7,y
+    ora         monsterShapeOr+7,y
+    sta         compositeBuffer,x
     inx
     iny
     dec         tempZP
     bne         loop
+    rts
+.endproc
 
 bufferOffset:       .byte   0
 monsterOffset:      .byte   0
 
-monsterShapeOr:     .res    48
-monsterShapeAnd:    .res    48
 
 .align 256
 COMPOSITE_BUFFER_WIDTH = 32
@@ -865,7 +947,8 @@ compositeBuffer:    .res    256
 frameBuffer:        .res    256
 colorRow0:          .res    256
 colorRow1:          .res    256
-
+monsterShapeOr:     .res    256
+monsterShapeAnd:    .res    256
 .endproc
 
 ;-----------------------------------------------------------------------------
@@ -1217,3 +1300,18 @@ shapeSpider2Mask:
     .byte   $FF, $FF, $0F, $00, $00, $0F, $FF, $FF
     .byte   $0F, $F0, $F0, $00, $00, $F0, $F0, $0F
     .byte   $00, $FF, $00, $FF, $FF, $00, $FF, $00
+
+
+shape4b_hulk1:
+    .byte   $C0, $3C, $FC, $FF, $FC, $30, $0F
+    .byte   $0F, $00, $AF, $2F, $AF, $00, $00
+    .byte   $00, $00, $03, $00, $03, $00, $00
+    .byte   $00, $F0, $F0, $FC, $F0, $C0, $3C
+    .byte   $3F, $00, $BF, $BF, $BF, $00, $00
+    .byte   $00, $00, $0E, $00, $0E, $00, $00
+    .byte   $00, $C0, $C0, $F0, $C0, $00, $F0
+    .byte   $FC, $03, $FF, $FF, $FF, $03, $00
+    .byte   $00, $00, $3A, $02, $3A, $00, $00
+    .byte   $00, $00, $00, $C0, $00, $00, $C0
+    .byte   $F0, $0F, $FF, $FF, $FF, $0C, $03
+    .byte   $03, $00, $EB, $0B, $EB, $00, $00
