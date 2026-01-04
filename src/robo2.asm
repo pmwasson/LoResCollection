@@ -12,18 +12,28 @@
 .segment "CODE"
 .org    $2000
 
-BORDER_COLOR0   = $15
-BORDER_COLOR1   = $51
-BG_COLOR        = $77
+BORDER_COLOR0       = $15
+BORDER_COLOR1       = $51
+BG_COLOR            = $77
 
-SCREEN_TOP      = 4
-SCREEN_BOTTOM   = 44
-SCREEN_LEFT     = 3
-SCREEN_RIGHT    = 37
+SCREEN_TOP          = 4
+SCREEN_BOTTOM       = 44
+SCREEN_LEFT         = 3
+SCREEN_RIGHT        = 37
 
-JOYSTICK_DELAY  = 10
-JOYSTICK_TAP1   = SCREEN_LEFT+JOYSTICK_DELAY
-JOYSTICK_TAP2   = JOYSTICK_TAP1+JOYSTICK_DELAY
+JOYSTICK_DELAY      = 10
+JOYSTICK_TAP1       = SCREEN_LEFT+JOYSTICK_DELAY
+JOYSTICK_TAP2       = JOYSTICK_TAP1+JOYSTICK_DELAY
+
+JOYSTICK_X_LEFT     = 0
+JOYSTICK_X_MID      = 1
+JOYSTICK_X_RIGHT    = 2
+JOYSTICK_Y_UP       = 0
+JOYSTICK_Y_MID      = 1
+JOYSTICK_Y_DOWN     = 2
+
+DIRECTION_NONE      = JOYSTICK_Y_MID*4 + JOYSTICK_X_MID
+DIRECTION_UP        = JOYSTICK_Y_UP*4  + JOYSTICK_X_MID
 
 .proc main
 
@@ -49,14 +59,17 @@ JOYSTICK_TAP2   = JOYSTICK_TAP1+JOYSTICK_DELAY
     ldx         #SOUND_WAKEUP
     jsr         playSound
 
+    lda         #$80
+    sta         playerX+0
+    sta         playerY+0
     lda         #20
-    sta         playerX
+    sta         playerX+1
     lda         #20
-    sta         playerY
-    lda         #(1*2+1)*2
+    sta         playerY+1
+    lda         #DIRECTION_UP*2
     sta         playerDir
 
-loop:
+gameLoop:
     ; Timer
     inc         time0
     bne         :+
@@ -74,45 +87,89 @@ loop:
 clear:
     jsr         clearPartialScreen
     jsr         updateSound
+    jsr         updatePlayer
+    jsr         drawShapes
+    jsr         updateSound
+
+    lda         KBD
+    bpl         gameLoop
+
+doKeyboard:
+    sta         KBDSTRB
+
+    jmp         quit
+
+.endproc
+
+.proc updatePlayer
 
     ; Movement
 checkLeft:
     lda         joystickX
+    ;cmp        #JOYSTICK_X_LEFT        ; compare to zero not needed
     bne         checkRight
-    lda         playerX
+    lda         playerX+1
     cmp         #SCREEN_LEFT
     beq         checkUp
-    dec         playerX
+    lda         playerX
+    sec
+    sbc         playerSpeed
+    sta         playerX
+    lda         playerX+1
+    sbc         #0
+    sta         playerX+1
 
 checkRight:
-    cmp         #2
+    cmp         #JOYSTICK_X_RIGHT
     bne         checkUp
-    lda         playerX
+    lda         playerX+1
     cmp         #SCREEN_RIGHT-3
     beq         checkUp
-    inc         playerX
+    lda         playerX
+    clc
+    adc         playerSpeed
+    sta         playerX
+    lda         playerX+1
+    adc         #0
+    sta         playerX+1
 
 checkUp:
     lda         joystickY
+    ;cmp        #JOYSTICK_Y_UP          ; compare to zero not needed
     bne         checkDown
-    lda         playerY
+    lda         playerY+1
     cmp         #SCREEN_TOP
     beq         checkButton
-    dec         playerY
+    lda         playerY
+    sec
+    sbc         playerSpeed
+    sta         playerY
+    lda         playerY+1
+    sbc         #0
+    sta         playerY+1
+
 
 checkDown:
-    cmp         #2
+    cmp         #JOYSTICK_Y_DOWN
     bne         checkButton
-    lda         playerY
+    lda         playerY+1
     cmp         #SCREEN_BOTTOM-3
     beq         checkButton
-    inc         playerY
+    lda         playerY
+    clc
+    adc         playerSpeed
+    sta         playerY
+    lda         playerY+1
+    adc         #0
+    sta         playerY+1
 
 checkButton:
     lda         BUTTON0
     bmi         shoot
     ; if button not pressed let direction follow movement
     lda         joystickIndex
+    cmp         #DIRECTION_NONE
+    beq         drawPlayer
     asl
     sta         playerDir       ; direction set
     jmp         drawPlayer
@@ -122,19 +179,41 @@ shoot:
 
 drawPlayer:
     jsr         setPlayerShape
-    lda         playerY
-    ldy         playerX
+    lda         playerY+1
+    ldy         playerX+1
     jsr         draw3x3
 
-    lda         KBD
-    bpl         loop
-    sta         KBDSTRB
-
-    jmp         quit
-
-
+    rts
 .endproc
 
+.proc drawShapes
+    ldy     #0
+    sty     index
+
+loop:
+    ldy     index
+    ldx     testShapes,y
+    bmi     done
+    lda     testShapes+2,y
+    sta     shapeY
+    jsr     setShape
+    lda     testShapes+1,y
+    tay
+    lda     shapeY
+    jsr     draw3x3
+    lda     index
+    clc
+    adc     #3
+    sta     index
+    jmp     loop
+
+done:
+    rts
+
+index:      .byte   0
+shapeY:     .byte   0
+
+.endproc
 
 
 ;-----------------------------------------------------------------------------
@@ -354,7 +433,7 @@ row:        .byte   0
 ; Set Player Shape
 ;-----------------------------------------------------------------------------
 .proc setPlayerShape
-    lda         playerY
+    lda         playerY+1
     and         #1
     ora         playerDir
     tax
@@ -405,6 +484,46 @@ playerShape2:
 
 .endproc
 
+;-----------------------------------------------------------------------------
+; Set Shape
+;   X - shape
+;   A - y cordinate (need to shift even/odd)
+;-----------------------------------------------------------------------------
+.proc setShape
+    and         #1
+    sta         tempZP
+    txa
+    ora         tempZP
+    tax
+    lda         shapeTable0,x
+    sta         shape0
+    lda         shapeTable1,x
+    sta         shape1
+    lda         shapeTable2,x
+    sta         shape2
+    rts
+
+; 0 - empty(0)
+; 2 - X(1)
+; 4 - diamond(1,2)
+
+shapeTable0:
+    .byte       $00,$00
+    .byte       $11,$44
+    .byte       $04,$10
+
+shapeTable1:
+    .byte       $00,$00
+    .byte       $04,$10
+    .byte       $19,$64
+
+shapeTable2:
+    .byte       $00,$00
+    .byte       $11,$44
+    .byte       $04,$10
+
+
+.endproc
 
 ;-----------------------------------------------------------------------------
 ; Quit
@@ -434,9 +553,10 @@ quitParams:
 ; Globals
 ;-----------------------------------------------------------------------------
 
-playerX:        .byte   0
-playerY:        .byte   0
+playerX:        .word   0
+playerY:        .word   0
 playerDir:      .byte   0       ; joystick direction *2
+playerSpeed:    .byte   $90
 
 joystickX:      .byte   0       ; 0=left, 1=middle, 2=right
 joystickY:      .byte   0       ; 0=up, 1=middle, 2=down
@@ -447,6 +567,26 @@ time1:          .byte   0
 shape0:         .byte   0
 shape1:         .byte   0
 shape2:         .byte   0
+
+
+testShapes:
+                .byte   4,5,5
+                .byte   4,9,6
+                .byte   2,17,8
+                .byte   4,23,11
+                .byte   2,31,7
+                .byte   2,5,13
+                .byte   4,9,19
+                .byte   4,17,16
+                .byte   4,23,25
+                .byte   2,31,31
+                .byte   0,0,0
+                .byte   0,0,0
+                .byte   0,0,0
+                .byte   0,0,0
+                .byte   0,0,0
+                .byte   0,0,0
+                .byte   $ff,$ff,$ff
 
 ; color lookup tables
 ; aabbccdd 0 = mask, 1..3 colors
@@ -495,7 +635,6 @@ COLOR_OR_30     = COLOR_OR3 << 4 | COLOR_OR0
 COLOR_OR_31     = COLOR_OR3 << 4 | COLOR_OR1
 COLOR_OR_32     = COLOR_OR3 << 4 | COLOR_OR2
 COLOR_OR_33     = COLOR_OR3 << 4 | COLOR_OR3
-
 
 .align 256
 
