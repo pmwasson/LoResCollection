@@ -9,7 +9,7 @@
 ; Font in 8 pixels tall, but assumes 6 in general
 ; Can be any width, but will try to limit to 5.
 ; Assuming average of 5 pixels (including space between letters)
-; can get 8x6 = 48 characters on the screen
+; can get 6 lines of 8 character = 48 characters on the screen
 ;
 ; Must start on even rows, but any column.
 

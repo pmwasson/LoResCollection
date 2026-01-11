@@ -299,6 +299,6 @@ xOffset:        .byte       0
 xSubOffset:     .byte       0
 
 .align 256
-.include "image.asm"
-.include "logo.asm"
+.include "..\build\image.asm"
+.include "..\build\logo.asm"
 .include "sound.asm"

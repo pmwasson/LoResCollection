@@ -20,8 +20,8 @@ oddPtr1                 :=  maskPtr1
 tileShiftInit           :=  tempZP
 tileShiftRemainder      :=  temp2ZP
 
-START_PLAYER_X          =  5
-START_PLAYER_Y          =  $60
+START_PLAYER_X          =  7
+START_PLAYER_Y          =  $C9
 MAP_SCREEN_LEFT         =  2
 MAP_SCREEN_RIGHT        =  36
 MAP_SCREEN_TOP          =  4        ; Must be /2
@@ -64,12 +64,6 @@ COLLISION_BOTTOM_MID_MASK   = %11110111
 
     lda         #$00
     jsr         clearMixedText
-
-    ; set particles location
-    ;lda         #34
-    ;sta         curY
-    ;lda         #PLAYER_XOFFSET+2
-    ;sta         curX
 
     ldx         #SOUND_WAKEUP
     jsr         playSound
@@ -165,12 +159,8 @@ doneGravity:
 :
 
     ; Draw foreground
-    ;jsr         drawParticles
     jsr         drawPlayer
     jsr         drawFuelGauge
-
-
-
 
     ; Get input
     ;---------------
@@ -964,193 +954,4 @@ nibbleShiftRemainder:   .byte   $00, $70, $60, $50  ;        0, -1, -2, -3
 evenColor:          .byte   $77, $71, $17, $11, $77, $71, $17, $11, $77, $71, $17, $11, $77, $71, $17, $11
 oddColor:           .byte   $77, $77, $77, $77, $71, $71, $71, $71, $17, $17, $17, $17, $11, $11, $11, $11
 
-.align 256
-
-mapTiles:
-
-        ; tiles defined turned right 90 degrees
-        ;
-        ;  L ->  1111
-        ;        1000
-        ;        1000
-        ;        0000
-
-; 00 - empty
-        .byte   %0000       ; ____
-        .byte   %0000       ; ____
-        .byte   %0000       ; ____
-        .byte   %0000       ; ____
-
-; 04 - solid
-        .byte   %1111       ; ####
-        .byte   %1111       ; ####
-        .byte   %1111       ; ####
-        .byte   %1111       ; ####
-
-; 08 - se
-        .byte   %1111       ; ####
-        .byte   %0111       ; ###_
-        .byte   %0011       ; ##__
-        .byte   %0001       ; #___
-
-; 0C - sw
-        .byte   %0001       ; ####
-        .byte   %0011       ; _###
-        .byte   %0111       ; __##
-        .byte   %1111       ; ___#
-
-; 10 - ne
-        .byte   %1111       ; #___
-        .byte   %1110       ; ##__
-        .byte   %1100       ; ###_
-        .byte   %1000       ; ####
-
-; 14 - nw
-        .byte   %1000       ; ___#
-        .byte   %1100       ; __##
-        .byte   %1110       ; _###
-        .byte   %1111       ; ####
-
-; 18 - dot
-        .byte   %0110       ; _##_
-        .byte   %1111       ; ####
-        .byte   %1111       ; ####
-        .byte   %0110       ; _##_
-
-; 1c - rough floor 1
-        .byte   %1000       ; ____
-        .byte   %1110       ; _#__
-        .byte   %0000       ; _#_#
-        .byte   %1100       ; ##_#
-
-; 20 - rough floor 2
-        .byte   %1000       ; ____
-        .byte   %1100       ; __#_
-        .byte   %1110       ; ###_
-        .byte   %1000       ; ####
-
-; 24 - rough floor 3
-        .byte   %0000       ; ____
-        .byte   %1000       ; ____
-        .byte   %0000       ; ____
-        .byte   %1000       ; _#_#
-
-; 28 - steep rise 1 left
-        .byte   %1100       ; _###
-        .byte   %1111       ; _###
-        .byte   %1111       ; ####
-        .byte   %1111       ; ####
-
-; 2c - steep rise 2 left
-        .byte   %0000       ; ___#
-        .byte   %0000       ; ___#
-        .byte   %1100       ; __##
-        .byte   %1111       ; __##
-
-; 30 - steep rise 1 right
-        .byte   %1111       ; ###_
-        .byte   %1111       ; ###_
-        .byte   %1111       ; ####
-        .byte   %1100       ; ####
-
-; 34 - steep rise 2 right
-        .byte   %1111       ; #___
-        .byte   %1100       ; #___
-        .byte   %0000       ; ##__
-        .byte   %0000       ; ##__
-
-; 38 - rough ceiling 1
-        .byte   %0001       ; ####
-        .byte   %1111       ; _##_
-        .byte   %0011       ; _#__
-        .byte   %0001       ; _#__
-
-; 3c - rough ceiling 2
-        .byte   %0000       ; _###
-        .byte   %0001       ; __#_
-        .byte   %0011       ; ____
-        .byte   %0001       ; ____
-
-; 40 - rough ceiling 3
-        .byte   %0011       ; #_##
-        .byte   %0000       ; #_#_
-        .byte   %0111       ; __#_
-        .byte   %0001       ; ____
-
-; 41 - rough left wall
-        .byte   %1111       ; ####
-        .byte   %1111       ; ###_
-        .byte   %1111       ; ####
-        .byte   %0101       ; ###_
-
-; 42 - rough right wall
-        .byte   %0101       ; ####
-        .byte   %1111       ; _###
-        .byte   %1111       ; ####
-        .byte   %1111       ; _###
-
-.align 256
-
-MAP_WIDTH = 32
-MAP_HEIGHT = 32
-
-X__ = $00
-XXX = $04
-XSE = $08
-XSW = $0C
-XNE = $10
-XNW = $14
-XOO = $18
-XF1 = $1C
-XF2 = $20
-XF3 = $24
-XL1 = $28
-XL2 = $2C
-XR1 = $30
-XR2 = $34
-XC1 = $38
-XC2 = $3C
-XC3 = $40
-XWL = $44
-XWR = $48
-
-map:
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,XSW,XSE,X__,XSW,XC1,XC2,XC3,XC2,XSW,XXX,XXX,XXX,XXX,XXX,XSW,XSE,X__,XSW,XSE,XC1,XC2,XC3,XC2,XSW,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XNE,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XWR,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,XOO,XOO,X__,X__,X__,X__,X__,XSW,XXX,XXX,XSE,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XWL,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XOO,X__,XOO,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XF1,XF2,XF3,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XF3,XF2,XL1,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XR1,XF2,XF3,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XWL,X__,X__,X__,X__,X__,X__,X__,XC3,XC2,XSW,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XWR,XXX,XXX
-    .byte   XXX,XXX,XXX,XWL,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XWL,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XXX,XR1,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XSW,XXX,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XWR,XXX,XXX
-    .byte   XXX,XXX,XXX,XWL,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XSE,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XWR,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XWR,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XF1,XF2,XF3,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL2,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,X__,X__,X__,X__,X__,X__,X__,XF3,XF2,XL1,XXX,XXX,XXX,XR2,X__,X__,X__,X__,X__,X__,X__,X__,X__,X__,XL1,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XF1,XF2,XNE,XNW,XXX,XXX,XXX,XXX,XXX,XXX,XR1,XF2,XF3,XF1,XF1,XF2,XF1,XNW,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-    .byte   XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX,XXX
-
+.include "..\build\landerMap.asm"

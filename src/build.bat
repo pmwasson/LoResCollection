@@ -3,8 +3,10 @@ cd ..\build
 ::---------------------------------------------------------------------------
 :: Convert images
 ::---------------------------------------------------------------------------
-python3 ..\scripts\imageConvert.py ..\images\land1.jpg  image.png >  ..\src\image.asm  || exit
-python3 ..\scripts\overlay.py      ..\images\logo.png   logo.png  >  ..\src\logo.asm   || exit
+python3 ..\scripts\genMap.py  ..\images\landerMap.png > landerMap.asm   || exit
+
+python3 ..\scripts\imageConvert.py ..\images\land1.jpg  image.png >  ..\build\image.asm  || exit
+python3 ..\scripts\overlay.py      ..\images\logo.png   logo.png  >  ..\build\logo.asm   || exit
 :: python3 ..\scripts\ai_sprite.py
 
 ::---------------------------------------------------------------------------
@@ -39,10 +41,10 @@ cl65 -I ..\src -t apple2 -u __EXEHDR__ ..\src\robo2.asm apple2.lib  -o robo2.app
 :: Start with a blank prodos disk
 copy ..\disk\template_prodos.dsk lores.dsk  || exit
 
+ac-windows -as lores.dsk lander.system sys < lander.apple2    || exit
 ac-windows -as lores.dsk robo2.system sys  < robo2.apple2     || exit
 
 ac-windows -as lores.dsk menu.system sys   < landscape.apple2 || exit
-ac-windows -as lores.dsk lander.system sys < lander.apple2    || exit
 ac-windows -as lores.dsk robo.system sys   < robo.apple2      || exit
 ac-windows -as lores.dsk escape.system sys < escape.apple2    || exit
 
